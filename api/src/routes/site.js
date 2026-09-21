@@ -9,7 +9,7 @@ export const publicSite = new Hono();
 publicSite.get('/', async c => {
   const d = await getDefaultDealer(c.env);
   const s = await getSite(c.env, d.id);
-  const { hero_image_key, about_image_key, ...pub } = s;
+  const { hero_image_key, about_image_key, watermark_key, ...pub } = s;
   return c.json(pub);
 });
 
@@ -30,28 +30,31 @@ site.patch('/', async c => {
 
 // POST /api/site/image?kind=hero|about  (multipart field "image")
 site.post('/image', async c => {
-  const kind = c.req.query('kind') === 'about' ? 'about' : 'hero';
+  const kind = ['about', 'watermark'].includes(c.req.query('kind')) ? c.req.query('kind') : 'hero';
   const body = await c.req.parseBody();
   const file = body.image;
   if (!file || typeof file !== 'object' || !('arrayBuffer' in file)) return c.json({ error: 'No image provided' }, 400);
   if (file.type && !file.type.startsWith('image/')) return c.json({ error: 'Not an image' }, 400);
   if (file.size > 20 * 1024 * 1024) return c.json({ error: 'File too large (max 20MB)' }, 400);
   const dealerId = c.get('dealerId');
-  const key = `site/${dealerId}/${kind}-${crypto.randomUUID()}.jpg`;
-  const img = await resizeImage(c.env, file, 1800, 82);
+  const png = kind === 'watermark';
+  const key = `site/${dealerId}/${kind}-${crypto.randomUUID()}.${png ? 'png' : 'jpg'}`;
+  const img = png ? { buffer: await file.arrayBuffer(), type: file.type || 'image/png' } : await resizeImage(c.env, file, 1800, 82);
   await c.env.BUCKET.put(key, img.buffer, { httpMetadata: { contentType: img.type, cacheControl: 'public, max-age=31536000, immutable' } });
-  const prev = (await getSite(c.env, dealerId))[`${kind}_image_key`];
-  await saveSite(c.env, dealerId, { [`${kind}_image_key`]: key });
+  const keyName = kind === 'watermark' ? 'watermark_key' : `${kind}_image_key`;
+  const prev = (await getSite(c.env, dealerId))[keyName];
+  await saveSite(c.env, dealerId, { [keyName]: key });
   if (prev) c.executionCtx.waitUntil(c.env.BUCKET.delete(prev).catch(() => {}));
   return c.json(await getSite(c.env, dealerId));
 });
 
-// DELETE /api/site/image?kind=hero|about — back to the built-in picture
+// DELETE /api/site/image?kind=hero|about|watermark — back to the built-in picture
 site.delete('/image', async c => {
-  const kind = c.req.query('kind') === 'about' ? 'about' : 'hero';
+  const kind = ['about', 'watermark'].includes(c.req.query('kind')) ? c.req.query('kind') : 'hero';
   const dealerId = c.get('dealerId');
-  const prev = (await getSite(c.env, dealerId))[`${kind}_image_key`];
-  await saveSite(c.env, dealerId, { [`${kind}_image_key`]: '' });
+  const keyName = kind === 'watermark' ? 'watermark_key' : `${kind}_image_key`;
+  const prev = (await getSite(c.env, dealerId))[keyName];
+  await saveSite(c.env, dealerId, { [keyName]: '' });
   if (prev) c.executionCtx.waitUntil(c.env.BUCKET.delete(prev).catch(() => {}));
   return c.json(await getSite(c.env, dealerId));
 });

@@ -22,6 +22,12 @@ export const SITE_DEFAULTS = {
   about_points: 'Mixed stock from first cars to seven-seaters and commercials\nFinance arranged in-house with fast approval\nFair trade-in valuations and cash purchases\nCall, WhatsApp or drop in six days a week',
   about_image_key: '',
   analytics_id: '',           // e.g. G-4NWJPS42KT — GA4 tag, empty = off
+  watermark_on: '0',          // '1' = bake the logo into served car photos
+  watermark_position: 'tl',   // tl | tr | bl | br
+  watermark_scope: 'main',    // main = main photo only | all
+  watermark_opacity: '0.9',
+  watermark_key: '',          // R2 key of a custom watermark PNG; empty = built-in /img/watermark.png
+  sold_stamp_on: '1',         // '1' = cars flagged sold_overlay get the SOLD ribbon baked in
   footer_blurb: 'Family-run used car sales in Kilbeggan, Co. Westmeath. Quality cars, honest prices, finance arranged and trade-ins welcome.'
 };
 export const SITE_KEYS = Object.keys(SITE_DEFAULTS);
@@ -36,6 +42,7 @@ export async function getSite(env, dealerId) {
     ...s,
     trust,
     about_points: String(s.about_points || '').split('\n').map(x => x.trim()).filter(Boolean),
+    watermark_image: s.watermark_key ? imageUrl(env, s.watermark_key) : '/img/watermark.png',
     hero_image: s.hero_image_key ? imageUrl(env, s.hero_image_key) : '/img/hero-forecourt.jpg',
     about_image: s.about_image_key ? imageUrl(env, s.about_image_key) : '/img/about-forecourt.jpg'
   };

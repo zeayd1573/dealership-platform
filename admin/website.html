@@ -59,6 +59,21 @@
       </section>
 
       <section class="panel">
+        <h2>Branding on photos</h2>
+        <p class="lead">Put your logo on car photos so they carry your name when shared or copied. Originals are kept, so you can change your mind any time.</p>
+        <div class="grid-3">
+          <div class="field"><label>Logo watermark</label><label class="check" style="min-height:48px"><input type="checkbox" id="watermark_on"> Add logo to car photos</label></div>
+          <div class="field"><label for="watermark_position">Corner</label><select class="select" id="watermark_position"><option value="tl">Top left</option><option value="tr">Top right</option><option value="bl">Bottom left</option><option value="br">Bottom right</option></select></div>
+          <div class="field"><label for="watermark_scope">Which photos</label><select class="select" id="watermark_scope"><option value="main">Main photo only</option><option value="all">Every photo</option></select></div>
+          <div class="field"><label for="watermark_opacity">Strength <span class="muted" id="wm-op-out"></span></label><input type="range" id="watermark_opacity" min="0.3" max="1" step="0.1" style="width:100%"></div>
+          <div class="field"><label>SOLD stamp</label><label class="check" style="min-height:48px"><input type="checkbox" id="sold_stamp_on"> Allow the red SOLD ribbon on sold cars</label></div>
+        </div>
+        <div class="field" style="margin-top:18px"><label>Watermark image</label>
+          <div class="img-pick"><img id="watermark_preview" alt="" style="aspect-ratio:auto;object-fit:contain;background:#777;padding:12px"><div><p class="muted" style="margin:0 0 10px">A PNG with a transparent background works best. The default is your logo on a soft dark panel.</p><input type="file" id="watermark_file" accept="image/png,image/webp" hidden><button class="btn btn-dark" type="button" data-pick="watermark">Choose image</button> <button class="btn btn-outline" type="button" data-reset="watermark">Use default</button></div></div>
+        </div>
+      </section>
+
+      <section class="panel">
         <h2>Google and sharing</h2>
         <p class="lead">What shows in Google results and when the site is shared on WhatsApp or Facebook.</p>
         <div class="grid-2">
@@ -88,11 +103,16 @@
       $('about_points').value = (site.about_points || []).join('\n');
       const abs = u => /^https?:/.test(u) ? u : API_BASE + u;
       $('hero_preview').src = abs(site.hero_image); $('about_preview').src = abs(site.about_image);
+      $('watermark_on').checked = site.watermark_on === '1'; $('sold_stamp_on').checked = site.sold_stamp_on === '1';
+      $('watermark_position').value = site.watermark_position || 'tl'; $('watermark_scope').value = site.watermark_scope || 'main';
+      $('watermark_opacity').value = site.watermark_opacity || '0.9'; $('wm-op-out').textContent = Math.round(($('watermark_opacity').value) * 100) + '%';
+      $('watermark_preview').src = abs(site.watermark_image);
       $('trust-rows').innerHTML = (site.trust || []).map(([t, d], i) => `<div class="trust-row"><input class="input" data-t="${i}" value="${esc(t)}" placeholder="Title" maxlength="40"><input class="input" data-d="${i}" value="${esc(d)}" placeholder="One short sentence" maxlength="90"></div>`).join('');
       counts();
     }
     function counts() { document.querySelectorAll('.count').forEach(c => { const el = $(c.dataset.for); c.textContent = `${el.value.length} / ${el.maxLength}`; }); }
     document.addEventListener('input', counts);
+    $('watermark_opacity').addEventListener('input', e => $('wm-op-out').textContent = Math.round(e.target.value * 100) + '%');
     fill();
 
     $('site-form').addEventListener('submit', async e => {
@@ -100,6 +120,8 @@
       const body = {};
       for (const k of TEXT) body[k] = $(k).value.trim();
       body.about_points = $('about_points').value.split('\n').map(s => s.trim()).filter(Boolean);
+      body.watermark_on = $('watermark_on').checked ? '1' : '0'; body.sold_stamp_on = $('sold_stamp_on').checked ? '1' : '0';
+      body.watermark_position = $('watermark_position').value; body.watermark_scope = $('watermark_scope').value; body.watermark_opacity = $('watermark_opacity').value;
       body.trust = [...document.querySelectorAll('.trust-row')].map(r => [r.querySelector('[data-t]').value.trim(), r.querySelector('[data-d]').value.trim()]).filter(([t]) => t);
       const btn = $('save-btn'); btn.disabled = true; btn.textContent = 'Saving…';
       try { site = await api('/site', { method: 'PATCH', body }); fill(); toast('Website updated'); $('save-note').textContent = 'Saved. The website shows these changes now.'; }
@@ -108,7 +130,7 @@
     });
 
     document.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => $(b.dataset.pick + '_file').click()));
-    for (const kind of ['hero', 'about']) {
+    for (const kind of ['hero', 'about', 'watermark']) {
       $(kind + '_file').addEventListener('change', async e => {
         const f = e.target.files[0]; if (!f) return;
         const fd = new FormData(); fd.append('image', f);

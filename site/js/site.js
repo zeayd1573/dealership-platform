@@ -66,7 +66,7 @@ function normalizeVehicle(v) {
     thumb: v.primary_thumb, photos: images.length ? images.map(i => i.url) : (v.primary_image ? [v.primary_image] : []),
     photoCount: v.photo_count ?? images.length, blurb: v.description || '',
     featureList: v.features ? v.features.split(',').map(s => s.trim()).filter(Boolean) : [],
-    status: v.status, highlighted: v.is_highlighted, youtube: v.youtube_link
+    status: v.status, highlighted: v.is_highlighted, youtube: v.youtube_link, sold: v.status === 'sold' || !!v.sold_overlay
   };
 }
 
@@ -117,7 +117,8 @@ window.carUrl = carUrl;
 function carCard(c) {
   const saved = getSaved().includes(c.id);
   const chips = [c.year, c.km ? fmt.km(c.km) : null, c.fuel, c.trans].filter(Boolean);
-  const badge = c.year >= 2024 ? '<span class="badge">Nearly new</span>'
+  const badge = c.sold ? '<span class="badge sold">Sold</span>'
+    : c.year >= 2024 ? '<span class="badge">Nearly new</span>'
     : c.km && c.km < 70000 ? '<span class="badge amber">Low mileage</span>' : '';
   return `
     <article class="car-card" data-id="${c.id}">

@@ -134,6 +134,7 @@ hr.rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
 .save-btn[aria-pressed="true"] svg { fill: currentColor; }
 .badge { position: absolute; top: 0; left: 0; padding: 4px 9px; background: var(--ink); color: var(--paper); font-size: .66rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 .badge.amber { background: var(--accent); }
+.badge.sold { background: #c8102e; font-size: .8rem; padding: 6px 12px; }
 .car-card-body { padding: 14px 0 0; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .car-card-title { font-family: var(--serif); font-size: 1.25rem; line-height: 1.15; font-weight: 800; letter-spacing: -.02em; }
 .car-card-title a::after { content: ""; position: absolute; inset: 0; }

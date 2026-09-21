@@ -2,6 +2,7 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../lib/auth.js';
 import { shapeImage } from '../lib/util.js';
+import { getSite } from '../lib/site.js';
 
 /** Single resize (used for site images). Falls back to the original bytes without the Images binding. */
 export async function resizeImage(env, file, width, quality = 82) {
@@ -116,15 +117,81 @@ images.patch('/reorder', async c => {
   return c.json({ success: true });
 });
 
-// GET /api/files/<key> — stream an object from R2 (used locally and when no public bucket domain is set)
+// GET /api/files/<key> — stream an object from R2. Vehicle photos get the dealer's branding
+// watermark and/or a SOLD ribbon baked in when enabled; results are cached in R2 under derived/<sig>/.
 files.get('/*', async c => {
   const key = c.req.path.replace(/^\/api\/files\//, '');
   if (!key) return c.text('Not found', 404);
   const obj = await c.env.BUCKET.get(key);
   if (!obj) return c.text('Not found', 404);
+  const isPhoto = key.startsWith('vehicles/');
+  const cache = isPhoto ? 'public, max-age=86400' : 'public, max-age=31536000, immutable';
+
+  if (isPhoto && c.env.IMAGES) {
+    const row = await c.env.DB.prepare('SELECT vi.is_primary, vi.key, vi.thumb_key, v.sold_overlay, v.dealer_id FROM vehicle_images vi JOIN vehicles v ON v.id = vi.vehicle_id WHERE vi.key = ? OR vi.thumb_key = ?').bind(key, key).first();
+    if (row) {
+      const site = await getSite(c.env, row.dealer_id);
+      const wm = site.watermark_on === '1' && (site.watermark_scope === 'all' || !!row.is_primary);
+      const sold = site.sold_stamp_on === '1' && !!row.sold_overlay;
+      if (wm || sold) {
+        const sig = await shortHash(`v2|${wm ? `w:${site.watermark_position}:${site.watermark_opacity}:${site.watermark_key || 'default'}` : ''}|${sold ? 'sold' : ''}`);
+        const dkey = `derived/${sig}/${key}`;
+        const cached = await c.env.BUCKET.get(dkey);
+        if (cached) return send(cached, cache);
+        try {
+          const out = await compose(c, await obj.arrayBuffer(), site, wm, sold);
+          c.executionCtx.waitUntil(c.env.BUCKET.put(dkey, out, { httpMetadata: { contentType: 'image/jpeg', cacheControl: cache } }));
+          return new Response(out, { headers: { 'content-type': 'image/jpeg', 'cache-control': cache, 'x-derived': sig } });
+        } catch (err) {
+          console.warn('overlay failed, serving original:', err.message);
+          return send(await c.env.BUCKET.get(key), cache);
+        }
+      }
+    }
+  }
+  return send(obj, cache);
+});
+
+function send(obj, cache) {
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
   headers.set('etag', obj.httpEtag);
-  if (!headers.get('cache-control')) headers.set('cache-control', 'public, max-age=31536000, immutable');
+  headers.set('cache-control', cache);
   return new Response(obj.body, { headers });
-});
+}
+
+async function shortHash(s) {
+  const b = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].slice(0, 6).map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+/** Bytes of an overlay image: a custom R2 key, or a built-in asset served by the Worker. */
+async function overlayBytes(c, key, assetPath) {
+  if (key) { const o = await c.env.BUCKET.get(key); if (o) return o.arrayBuffer(); }
+  const res = await c.env.ASSETS.fetch(new Request(new URL(assetPath, c.req.url)));
+  if (!res.ok) throw new Error('overlay asset missing: ' + assetPath);
+  return res.arrayBuffer();
+}
+
+const STAMP_W = 1400, STAMP_H = 1000; // sold-stamp.png canvas
+
+async function compose(c, bytes, site, wm, sold) {
+  const IM = c.env.IMAGES;
+  const info = await IM.info(new Blob([bytes]).stream());
+  const W = info.width, H = info.height;
+  let t = IM.input(new Blob([bytes]).stream());
+  if (wm) {
+    const logo = await overlayBytes(c, site.watermark_key, '/img/watermark.png');
+    const w = Math.max(80, Math.round(W * 0.22)); const m = Math.round(W * 0.025);
+    const pos = { tl: { top: m, left: m }, tr: { top: m, right: m }, bl: { bottom: m, left: m }, br: { bottom: m, right: m } }[site.watermark_position] || { top: m, left: m };
+    t = t.draw(IM.input(new Blob([logo]).stream()).transform({ width: w }), { opacity: Math.min(1, Math.max(.1, parseFloat(site.watermark_opacity) || .9)), ...pos });
+  }
+  if (sold) {
+    const stamp = await overlayBytes(c, '', '/img/sold-stamp.png');
+    const scale = Math.min(W / STAMP_W, H / STAMP_H);
+    const ow = Math.round(STAMP_W * scale), oh = Math.round(STAMP_H * scale);
+    t = t.draw(IM.input(new Blob([stamp]).stream()).transform({ width: ow }), { top: Math.max(0, Math.round((H - oh) / 2)), left: Math.max(0, Math.round((W - ow) / 2)) });
+  }
+  const out = await t.output({ format: 'image/jpeg', quality: 85 });
+  return out.response().arrayBuffer();
+}

@@ -50,12 +50,14 @@
           <div class="field"><label for="price">Asking price</label><div class="input-money"><input class="input" id="price" name="price" type="number" min="0" step="50" required></div><div class="hint" id="finance-hint"></div></div>
           <div class="field"><label for="status">Status</label><select class="select" id="status" name="status"><option value="available">Live on website</option><option value="paused">Paused (hidden)</option><option value="reserved">Reserved</option><option value="sold">Sold</option></select></div>
           <div class="field"><label>Homepage feature</label><label class="check" style="min-height:48px"><input type="checkbox" id="is_highlighted" name="is_highlighted"> Show in featured cars</label></div>
+          <div class="field full"><label class="check"><input type="checkbox" id="sold_overlay" name="sold_overlay"> Stamp a big red SOLD across this car's photos <span class="muted">(ticks itself when you mark the car Sold)</span></label></div>
         </div>
       </section>
 
       <section class="panel" id="photos-panel">
         <h2>Photos</h2>
         <p class="lead">The first photo is the main one buyers see. Drag photos to reorder. Aim for 8 or more.</p>
+        <label class="check" style="margin:-6px 0 12px"><input type="checkbox" id="sold_overlay_photos"> Stamp SOLD across these photos</label>
         <div id="photos-body"></div>
       </section>
 
@@ -221,6 +223,7 @@
         for (const k of F) { const el = $(k); if (!el) continue; const v = car[k]; if (v == null) continue; el.tagName === 'SELECT' ? setSelect(el, v) : el.value = v; }
         $('nct_expiry').value = (car.nct_expiry || '').slice(0, 7); $('tax_due').value = (car.tax_due || '').slice(0, 7);
         $('is_highlighted').checked = !!car.is_highlighted; $('is_commercial').checked = !!car.is_commercial;
+        $('sold_overlay').checked = $('sold_overlay_photos').checked = !!car.sold_overlay;
         features = new Set((car.features || '').split(',').map(s => s.trim()).filter(Boolean));
         $('archive-btn').hidden = false;
         $('top-actions').innerHTML = car.status !== 'archived' ? `<a class="btn btn-outline" href="${API_BASE}/cars/${car.id}" target="_blank" rel="noopener">View on website</a>` : '';
@@ -228,6 +231,11 @@
       } catch (err) { toast(err.message, true); }
     }
     renderChips(); renderPhotos();
+    // SOLD stamp: keep both checkboxes in sync, auto-tick when status becomes Sold, save straight away on an existing car
+    const syncSold = async (on, save) => { $('sold_overlay').checked = $('sold_overlay_photos').checked = on; if (save && id) { try { await api(`/vehicles/${id}`, { method: 'PATCH', body: { sold_overlay: on } }); toast(on ? 'SOLD stamp on. Photos update within a minute.' : 'SOLD stamp removed'); } catch (err) { toast(err.message, true); } } };
+    $('sold_overlay').addEventListener('change', e => syncSold(e.target.checked, true));
+    $('sold_overlay_photos').addEventListener('change', e => syncSold(e.target.checked, true));
+    $('status').addEventListener('change', e => { if (e.target.value === 'sold' && !$('sold_overlay').checked) syncSold(true, true); });
 
     // ── Save
     $('car-form').addEventListener('submit', async e => {
@@ -239,7 +247,7 @@
       for (const k of F) { const el = $(k); if (el) body[k] = el.value === '' ? null : el.value; }
       body.nct_expiry = $('nct_expiry').value ? $('nct_expiry').value + '-01' : null;
       body.tax_due = $('tax_due').value ? $('tax_due').value + '-01' : null;
-      body.is_highlighted = $('is_highlighted').checked; body.is_commercial = $('is_commercial').checked;
+      body.is_highlighted = $('is_highlighted').checked; body.is_commercial = $('is_commercial').checked; body.sold_overlay = $('sold_overlay').checked;
       body.features = [...features];
       const btn = $('save-btn'); btn.disabled = true; btn.textContent = 'Saving…';
       try {
