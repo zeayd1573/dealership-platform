@@ -57,7 +57,10 @@
       <section class="panel" id="photos-panel">
         <h2>Photos</h2>
         <p class="lead">The first photo is the main one buyers see. Drag photos to reorder. Aim for 8 or more.</p>
-        <label class="check" style="margin:-6px 0 12px"><input type="checkbox" id="sold_overlay_photos"> Stamp SOLD across these photos</label>
+        <div class="grid-3" style="margin:-6px 0 14px;align-items:end">
+          <div class="field"><label for="watermark_position">Logo watermark on this car</label><select class="select" id="watermark_position" name="watermark_position"><option value="">Website default</option><option value="off">No watermark</option><option value="tl">Top left</option><option value="tc">Top centre</option><option value="tr">Top right</option><option value="c">Centre</option><option value="bl">Bottom left</option><option value="bc">Bottom centre</option><option value="br">Bottom right</option></select></div>
+          <div class="field full" style="grid-column:span 2"><label class="check" style="min-height:48px"><input type="checkbox" id="sold_overlay_photos"> Stamp SOLD across these photos</label></div>
+        </div>
         <div id="photos-body"></div>
       </section>
 
@@ -224,6 +227,7 @@
         $('nct_expiry').value = (car.nct_expiry || '').slice(0, 7); $('tax_due').value = (car.tax_due || '').slice(0, 7);
         $('is_highlighted').checked = !!car.is_highlighted; $('is_commercial').checked = !!car.is_commercial;
         $('sold_overlay').checked = $('sold_overlay_photos').checked = !!car.sold_overlay;
+        $('watermark_position').value = car.watermark_position || '';
         features = new Set((car.features || '').split(',').map(s => s.trim()).filter(Boolean));
         $('archive-btn').hidden = false;
         $('top-actions').innerHTML = car.status !== 'archived' ? `<a class="btn btn-outline" href="${API_BASE}/cars/${car.id}" target="_blank" rel="noopener">View on website</a>` : '';
@@ -235,6 +239,7 @@
     const syncSold = async (on, save) => { $('sold_overlay').checked = $('sold_overlay_photos').checked = on; if (save && id) { try { await api(`/vehicles/${id}`, { method: 'PATCH', body: { sold_overlay: on } }); toast(on ? 'SOLD stamp on. Photos update within a minute.' : 'SOLD stamp removed'); } catch (err) { toast(err.message, true); } } };
     $('sold_overlay').addEventListener('change', e => syncSold(e.target.checked, true));
     $('sold_overlay_photos').addEventListener('change', e => syncSold(e.target.checked, true));
+    $('watermark_position').addEventListener('change', async e => { if (!id) return; try { await api(`/vehicles/${id}`, { method: 'PATCH', body: { watermark_position: e.target.value || null } }); toast('Watermark setting saved. Photos update within a minute.'); } catch (err) { toast(err.message, true); } });
     $('status').addEventListener('change', e => { if (e.target.value === 'sold' && !$('sold_overlay').checked) syncSold(true, true); });
 
     // ── Save
@@ -248,6 +253,7 @@
       body.nct_expiry = $('nct_expiry').value ? $('nct_expiry').value + '-01' : null;
       body.tax_due = $('tax_due').value ? $('tax_due').value + '-01' : null;
       body.is_highlighted = $('is_highlighted').checked; body.is_commercial = $('is_commercial').checked; body.sold_overlay = $('sold_overlay').checked;
+      body.watermark_position = $('watermark_position').value || null;
       body.features = [...features];
       const btn = $('save-btn'); btn.disabled = true; btn.textContent = 'Saving…';
       try {

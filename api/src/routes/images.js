@@ -128,18 +128,19 @@ files.get('/*', async c => {
   const cache = isPhoto ? 'public, max-age=86400' : 'public, max-age=31536000, immutable';
 
   if (isPhoto && c.env.IMAGES) {
-    const row = await c.env.DB.prepare('SELECT vi.is_primary, vi.key, vi.thumb_key, v.sold_overlay, v.status, v.dealer_id FROM vehicle_images vi JOIN vehicles v ON v.id = vi.vehicle_id WHERE vi.key = ? OR vi.thumb_key = ?').bind(key, key).first();
+    const row = await c.env.DB.prepare('SELECT vi.is_primary, vi.key, vi.thumb_key, v.sold_overlay, v.status, v.watermark_position, v.dealer_id FROM vehicle_images vi JOIN vehicles v ON v.id = vi.vehicle_id WHERE vi.key = ? OR vi.thumb_key = ?').bind(key, key).first();
     if (row) {
       const site = await getSite(c.env, row.dealer_id);
-      const wm = site.watermark_on === '1' && (site.watermark_scope === 'all' || !!row.is_primary);
+      const wmPos = row.watermark_position || site.watermark_position;   // per-car override, else site default
+      const wm = site.watermark_on === '1' && wmPos !== 'off' && (site.watermark_scope === 'all' || !!row.is_primary);
       const sold = site.sold_stamp_on === '1' && (!!row.sold_overlay || row.status === 'sold');
       if (wm || sold) {
-        const sig = await shortHash(`v4|${wm ? `w:${site.watermark_position}:${site.watermark_opacity}:${site.watermark_key || 'default'}` : ''}|${sold ? 'sold' : ''}`);
+        const sig = await shortHash(`v4|${wm ? `w:${wmPos}:${site.watermark_opacity}:${site.watermark_key || 'default'}` : ''}|${sold ? 'sold' : ''}`);
         const dkey = `derived/${sig}/${key}`;
         const cached = await c.env.BUCKET.get(dkey);
         if (cached) return send(cached, cache);
         try {
-          const out = await compose(c, await obj.arrayBuffer(), site, wm, sold);
+          const out = await compose(c, await obj.arrayBuffer(), { ...site, watermark_position: wmPos }, wm, sold);
           c.executionCtx.waitUntil(c.env.BUCKET.put(dkey, out, { httpMetadata: { contentType: 'image/jpeg', cacheControl: cache } }));
           return new Response(out, { headers: { 'content-type': 'image/jpeg', 'cache-control': cache, 'x-derived': sig } });
         } catch (err) {

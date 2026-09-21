@@ -5,7 +5,7 @@ export const VEHICLE_FIELDS = [
   'body_style', 'transmission', 'mileage', 'price', 'prev_price', 'description', 'features', 'status',
   'nct_expiry', 'tax_due', 'vin', 'youtube_link', 'is_highlighted', 'is_commercial', 'doors', 'seats',
   'owners', 'co2', 'max_power', 'fuel_economy', 'seat_belts', 'road_tax', 'warranty_type',
-  'warranty_duration', 'external_ref', 'sold_overlay'
+  'warranty_duration', 'external_ref', 'sold_overlay', 'watermark_position'
 ];
 const INT_FIELDS = new Set(['year', 'mileage', 'doors', 'seats', 'owners', 'co2', 'max_power', 'seat_belts', 'is_highlighted', 'is_commercial', 'sold_overlay']);
 const NUM_FIELDS = new Set(['price', 'prev_price', 'road_tax']);
@@ -29,6 +29,7 @@ export function pickVehicleFields(body, { forCreate = false } = {}) {
     out[k] = v;
   }
   if (out.status && !STATUSES.has(out.status)) delete out.status;
+  if ('watermark_position' in out && out.watermark_position !== null && !['off', 'tl', 'tc', 'tr', 'c', 'bl', 'bc', 'br'].includes(out.watermark_position)) out.watermark_position = null;
   if (forCreate && !out.status) out.status = 'available';
   return out;
 }
