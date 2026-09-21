@@ -14,7 +14,7 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     // Paths the Worker must handle before static assets: the API, SEO pages, and redirects from the old site.
-    "run_worker_first": ["/api/*", "/", "/cars/*", "/sitemap.xml", "/robots.txt", "/car-details", "/car-details/*", "/used-cars/*", "/apply-for-finance/*"]
+    "run_worker_first": ["/api/*", "/", "/stock", "/cars/*", "/sitemap.xml", "/robots.txt", "/car-details", "/car-details/*", "/used-cars/*", "/apply-for-finance/*"]
   },
 
   "d1_databases": [

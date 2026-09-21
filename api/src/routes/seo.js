@@ -1,6 +1,7 @@
 // SEO: clean car URLs with server-injected meta, home meta, sitemap, robots, redirects from the old site.
 import { getDefaultDealer, getSettings, shapeVehicle, shapeImage, VEHICLE_SELECT, repayment } from '../lib/util.js';
 import { getSite, escapeHtml as esc } from '../lib/site.js';
+import { vehiclePage, stockPage, homePage, chrome, carPath as renderCarPath } from '../lib/render.js';
 
 const STATIC_PAGES = ['/', '/stock', '/finance', '/sell-your-car', '/car-sourcing', '/contact'];
 
@@ -48,8 +49,22 @@ export function registerSeo(app) {
     const origin = new URL(c.req.url).origin;
     const d = await getDefaultDealer(c.env);
     const s = await getSite(c.env, d.id);
-    const html = await asset(c, '/index.html');
+    const settings = await getSettings(c.env, d.id);
+    const { results } = await c.env.DB.prepare(`SELECT ${VEHICLE_SELECT} FROM vehicles v WHERE v.dealer_id = ? AND v.status = 'available' ORDER BY v.year DESC, v.mileage ASC`).bind(d.id).all();
+    const cars = results.map(r => shapeVehicle(c.env, r, settings));
+    const html = chrome(homePage(await asset(c, '/index.html'), cars.slice(0, 6), cars.length), d, s, '/');
     return c.html(injectHead(html, { title: s.site_title, description: s.site_description, canonical: origin + '/', siteName: d.name, analytics: s.analytics_id, image: s.hero_image.startsWith('http') ? s.hero_image : origin + s.hero_image, jsonld: dealerJsonLd(d, origin) }));
+  });
+
+  // Stock page: grid rendered server-side (the page's JS re-renders it for filtering)
+  app.get('/stock', async c => {
+    const origin = new URL(c.req.url).origin;
+    const d = await getDefaultDealer(c.env);
+    const settings = await getSettings(c.env, d.id);
+    const { results } = await c.env.DB.prepare(`SELECT ${VEHICLE_SELECT} FROM vehicles v WHERE v.dealer_id = ? AND v.status = 'available' ORDER BY v.id DESC`).bind(d.id).all();
+    const cars = results.map(r => shapeVehicle(c.env, r, settings));
+    const html = chrome(stockPage(await asset(c, '/stock.html'), cars), d, await getSite(c.env, d.id), '/stock');
+    return c.html(injectHead(html, { title: `Used cars for sale in Kilbeggan, Co. Westmeath | ${d.name}`, description: `${cars.length} quality used cars, SUVs and vans in stock at ${d.name}, ${d.address}. Finance arranged, trade-ins welcome.`, canonical: origin + '/stock', siteName: d.name, image: cars[0]?.primary_image, jsonld: { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: cars.slice(0, 50).map((v, i) => ({ '@type': 'ListItem', position: i + 1, url: origin + renderCarPath(v), name: [v.year, v.make, v.model].join(' ') })) } }));
   });
 
   // Car page: /cars/<id>-<slug>
@@ -67,8 +82,12 @@ export function registerSeo(app) {
     const price = v.price ? '€' + Number(v.price).toLocaleString('en-IE') : 'POA';
     const bits = [v.variant, v.mileage ? Number(v.mileage).toLocaleString('en-IE') + ' km' : null, v.fuel_type, v.transmission].filter(Boolean).join(', ');
     const sold = v.status === 'sold' ? ' (Sold)' : v.status === 'reserved' ? ' (Reserved)' : '';
-    const html = await asset(c, '/vehicle.html');
+    const { results: imgs } = await c.env.DB.prepare('SELECT * FROM vehicle_images WHERE vehicle_id = ? ORDER BY is_primary DESC, sort_order, id').bind(row.id).all();
+    const images = imgs.map(i => shapeImage(c.env, i, v.status === 'sold' || !!v.sold_overlay));
+    const { results: others } = await c.env.DB.prepare(`SELECT ${VEHICLE_SELECT} FROM vehicles v WHERE v.dealer_id = ? AND v.status = 'available' AND v.id != ? ORDER BY (v.body_style = ?) DESC, ABS(COALESCE(v.price, 0) - ?) ASC LIMIT 3`).bind(row.dealer_id, row.id, v.body_style || '', v.price || 0).all();
+    const similar = others.map(r => shapeVehicle(c.env, r, settings));
     const s = await getSite(c.env, d.id);
+    const html = chrome(vehiclePage(await asset(c, '/vehicle.html'), v, images, d, similar), d, s, '/stock');
     const jsonld = { '@context': 'https://schema.org', '@graph': [crumbs(origin, [['Home', '/'], ['Used cars', '/stock'], [name, canonicalPath]]), { '@type': 'Car', name, brand: v.make, model: v.model, vehicleModelDate: v.year, mileageFromOdometer: v.mileage ? { '@type': 'QuantitativeValue', value: v.mileage, unitCode: 'KMT' } : undefined, fuelType: v.fuel_type, vehicleTransmission: v.transmission, color: v.colour, bodyType: v.body_style, image: v.primary_image, url: origin + canonicalPath,
       offers: { '@type': 'Offer', price: v.price, priceCurrency: 'EUR', availability: v.status === 'available' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut', seller: { '@type': 'AutoDealer', name: d.name, telephone: d.phone } } }] };
     return c.html(injectHead(html, { type: 'product', siteName: d.name, analytics: s.analytics_id, title: `${name} for sale, ${price}${sold} | ${d.name}`, description: `${name}${bits ? ' – ' + bits : ''}. ${price}${v.weekly ? `, from €${v.weekly}/week` : ''}. For sale at ${d.name}, ${d.address}.`, canonical: origin + canonicalPath, image: v.primary_image, jsonld }));
