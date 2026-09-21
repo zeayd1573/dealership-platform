@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Car Finance | MHL Motors, Kilbeggan</title>
+  <meta name="description" content="Apply for car finance with MHL Motors. Competitive rates, fast decisions, from 0% deposit. Complete a short application online.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <div class="wrap page-head">
+    <div class="crumbs"><a href="/">Home</a><span>/</span><span>Finance</span></div>
+    <h1>Car finance made simple</h1>
+  </div>
+
+  <div class="wrap form-layout">
+    <div>
+      <p class="lede-dark">We arrange finance for most of the cars we sell, with competitive rates and decisions usually the same day. Fill in the short application and we'll do the rest.</p>
+      <ul class="checklist">
+        <li><span data-icon="check"></span>Hire purchase from 0% deposit</li>
+        <li><span data-icon="check"></span>Terms from 3 to 5 years</li>
+        <li><span data-icon="check"></span>Trade-in can be used as your deposit</li>
+        <li><span data-icon="check"></span>No obligation, no effect on your credit score to enquire</li>
+      </ul>
+      <div class="info-card">
+        <h3>Try the numbers first</h3>
+        <p class="muted" style="font-size:.92rem">Every car page has a finance calculator. Pick a car, set your deposit and term, and see an indicative monthly figure before you apply.</p>
+        <a class="btn btn-outline" href="/stock">Browse cars</a>
+      </div>
+    </div>
+
+    <form class="panel stepped" id="finance-form" novalidate>
+      <div class="steps">
+        <span class="step-dot" data-step-dot>1<em>Your details</em></span>
+        <span class="step-dot" data-step-dot>2<em>The car</em></span>
+        <span class="step-dot" data-step-dot>3<em>Employment</em></span>
+      </div>
+
+      <div data-step class="form-grid">
+        <div class="field"><label for="f-first">First name</label><input class="input" id="f-first" name="first_name" required autocomplete="given-name"></div>
+        <div class="field"><label for="f-last">Surname</label><input class="input" id="f-last" name="last_name" required autocomplete="family-name"></div>
+        <div class="field"><label for="f-phone">Mobile</label><input class="input" id="f-phone" name="phone" type="tel" required autocomplete="tel"></div>
+        <div class="field"><label for="f-email">Email</label><input class="input" id="f-email" name="email" type="email" required autocomplete="email"></div>
+        <div class="field full"><label for="f-address">Address</label><input class="input" id="f-address" name="address" autocomplete="street-address"></div>
+        <div class="full form-actions-row"><button class="btn btn-dark" type="button" data-next>Continue</button></div>
+      </div>
+
+      <div data-step class="form-grid" hidden>
+        <div class="field full"><label for="f-car">Which car are you interested in?</label><select class="select" id="f-car" name="vehicle_id"><option value="">Not sure yet</option></select></div>
+        <div class="field"><label for="f-deposit">Deposit you can put down (€)</label><input class="input" id="f-deposit" name="deposit" type="number" min="0" step="100" placeholder="0"></div>
+        <div class="field"><label for="f-term">Preferred term</label><select class="select" id="f-term" name="term"><option>3 years</option><option>4 years</option><option selected>5 years</option></select></div>
+        <div class="field full"><label class="check"><input type="checkbox" name="trade_in" value="yes"> I have a car to trade in</label></div>
+        <div class="full form-actions-row"><button class="btn btn-outline" type="button" data-back>Back</button><button class="btn btn-dark" type="button" data-next>Continue</button></div>
+      </div>
+
+      <div data-step class="form-grid" hidden>
+        <div class="field"><label for="f-emp">Employment status</label><select class="select" id="f-emp" name="employment" required><option value="">Select…</option><option>Employed full-time</option><option>Employed part-time</option><option>Self-employed</option><option>Retired</option><option>Other</option></select></div>
+        <div class="field"><label for="f-income">Monthly net income (€)</label><input class="input" id="f-income" name="income" type="number" min="0" step="100"></div>
+        <div class="field full"><label for="f-notes">Anything else we should know?</label><textarea class="input" id="f-notes" name="message"></textarea></div>
+        <div class="field full"><label class="check"><input type="checkbox" name="consent" required> I agree to MHL Motors storing my details to process this application.</label></div>
+        <div class="full form-actions-row form-actions"><button class="btn btn-outline" type="button" data-back>Back</button><button class="btn btn-primary" type="submit">Submit</button></div>
+      </div>
+      <div class="form-msg"></div>
+    </form>
+  </div>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/js/site.js"></script>
+  <script src="/js/forms.js"></script>
+  <script>
+    (async () => {
+      const { dealer, cars } = await loadStock();
+      renderChrome(dealer, '/finance');
+      document.querySelectorAll('[data-icon]').forEach(el => el.outerHTML = ICONS[el.dataset.icon]);
+      fillCarSelect(document.getElementById('f-car'), cars, new URLSearchParams(location.search).get('id'));
+      initSteppedForm(document.getElementById('finance-form'), `${API}/enquiries`, { type: 'finance' });
+    })();
+  </script>
+</body>
+</html>

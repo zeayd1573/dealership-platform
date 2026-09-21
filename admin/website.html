@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Website · Dealer admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+  <style>
+    .img-pick { display: grid; grid-template-columns: 220px 1fr; gap: 18px; align-items: start; }
+    .img-pick img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: #e9e5dc; }
+    .trust-rows { display: grid; gap: 12px; }
+    .trust-row { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+    .count { font-size: .82rem; color: var(--muted); text-align: right; margin-top: 4px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="side"></aside>
+  <main class="main" style="max-width:960px">
+    <div class="topbar">
+      <div><h1>Website</h1><p>Change the words and pictures on your homepage. Changes go live as soon as you save.</p></div>
+      <div class="actions"><a class="btn btn-outline" id="view-site" href="/" target="_blank" rel="noopener">View website</a></div>
+    </div>
+
+    <form id="site-form">
+      <section class="panel">
+        <h2>Top of the homepage</h2>
+        <p class="lead">The first thing visitors see. Put a word between *stars* to colour it blue, e.g. Honest cars, *straight* prices.</p>
+        <div class="grid-2">
+          <div class="field full"><label for="hero_title">Headline</label><input class="input" id="hero_title" name="hero_title" maxlength="80"></div>
+          <div class="field full"><label for="hero_kicker">Small line above the headline</label><input class="input" id="hero_kicker" name="hero_kicker" maxlength="80"></div>
+          <div class="field full"><label for="hero_lede">Intro paragraph</label><textarea class="input" id="hero_lede" name="hero_lede" style="min-height:110px" maxlength="400"></textarea><div class="count" data-for="hero_lede"></div></div>
+          <div class="field"><label for="hero_tag_label">Photo caption, small line</label><input class="input" id="hero_tag_label" name="hero_tag_label" maxlength="40"></div>
+          <div class="field"><label for="hero_tag_value">Photo caption, bold line</label><input class="input" id="hero_tag_value" name="hero_tag_value" maxlength="60"></div>
+        </div>
+        <div class="field" style="margin-top:18px"><label>Main photo</label>
+          <div class="img-pick"><img id="hero_preview" alt=""><div><p class="muted" style="margin:0 0 10px">A wide photo of the forecourt or a car works best. It's resized automatically.</p><input type="file" id="hero_file" accept="image/*" hidden><button class="btn btn-dark" type="button" data-pick="hero">Choose photo</button> <button class="btn btn-outline" type="button" data-reset="hero">Use default</button></div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Four promises</h2>
+        <p class="lead">The short boxes under the search bar.</p>
+        <div class="trust-rows" id="trust-rows"></div>
+      </section>
+
+      <section class="panel">
+        <h2>About section</h2>
+        <div class="grid-2">
+          <div class="field full"><label for="about_title">Heading</label><input class="input" id="about_title" name="about_title" maxlength="90"></div>
+          <div class="field full"><label for="about_kicker">Small line above the heading</label><input class="input" id="about_kicker" name="about_kicker" maxlength="60"></div>
+          <div class="field full"><label for="about_text">Paragraph</label><textarea class="input" id="about_text" name="about_text" maxlength="600"></textarea><div class="count" data-for="about_text"></div></div>
+          <div class="field full"><label for="about_points">Bullet points <span class="muted">(one per line)</span></label><textarea class="input" id="about_points" name="about_points" style="min-height:120px"></textarea></div>
+        </div>
+        <div class="field" style="margin-top:18px"><label>About photo</label>
+          <div class="img-pick"><img id="about_preview" alt=""><div><input type="file" id="about_file" accept="image/*" hidden><button class="btn btn-dark" type="button" data-pick="about">Choose photo</button> <button class="btn btn-outline" type="button" data-reset="about">Use default</button></div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Google and sharing</h2>
+        <p class="lead">What shows in Google results and when the site is shared on WhatsApp or Facebook.</p>
+        <div class="grid-2">
+          <div class="field full"><label for="site_title">Page title</label><input class="input" id="site_title" name="site_title" maxlength="120"><div class="count" data-for="site_title"></div><div class="hint">Around 60 characters is ideal.</div></div>
+          <div class="field full"><label for="site_description">Description</label><textarea class="input" id="site_description" name="site_description" style="min-height:90px" maxlength="320"></textarea><div class="count" data-for="site_description"></div><div class="hint">Around 155 characters is ideal.</div></div>
+          <div class="field full"><label for="analytics_id">Google Analytics ID <span class="muted">(optional, e.g. G-4NWJPS42KT)</span></label><input class="input" id="analytics_id" name="analytics_id" maxlength="30" placeholder="Leave empty to switch off"></div>
+          <div class="field full"><label for="footer_blurb">Footer text</label><textarea class="input" id="footer_blurb" name="footer_blurb" style="min-height:80px" maxlength="300"></textarea></div>
+        </div>
+      </section>
+
+      <div class="savebar"><div class="grow muted" id="save-note"></div><button class="btn btn-primary btn-lg" type="submit" id="save-btn">Save changes</button></div>
+    </form>
+  </main>
+</div>
+
+<script src="js/admin.js"></script>
+<script>
+  (async () => {
+    await renderShell('website.html');
+    const $ = id => document.getElementById(id);
+    $('view-site').href = API_BASE + '/';
+    const TEXT = ['hero_title', 'hero_kicker', 'hero_lede', 'hero_tag_label', 'hero_tag_value', 'about_title', 'about_kicker', 'about_text', 'site_title', 'site_description', 'analytics_id', 'footer_blurb'];
+    let site = await api('/site');
+
+    function fill() {
+      for (const k of TEXT) $(k).value = site[k] || '';
+      $('about_points').value = (site.about_points || []).join('\n');
+      const abs = u => /^https?:/.test(u) ? u : API_BASE + u;
+      $('hero_preview').src = abs(site.hero_image); $('about_preview').src = abs(site.about_image);
+      $('trust-rows').innerHTML = (site.trust || []).map(([t, d], i) => `<div class="trust-row"><input class="input" data-t="${i}" value="${esc(t)}" placeholder="Title" maxlength="40"><input class="input" data-d="${i}" value="${esc(d)}" placeholder="One short sentence" maxlength="90"></div>`).join('');
+      counts();
+    }
+    function counts() { document.querySelectorAll('.count').forEach(c => { const el = $(c.dataset.for); c.textContent = `${el.value.length} / ${el.maxLength}`; }); }
+    document.addEventListener('input', counts);
+    fill();
+
+    $('site-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const body = {};
+      for (const k of TEXT) body[k] = $(k).value.trim();
+      body.about_points = $('about_points').value.split('\n').map(s => s.trim()).filter(Boolean);
+      body.trust = [...document.querySelectorAll('.trust-row')].map(r => [r.querySelector('[data-t]').value.trim(), r.querySelector('[data-d]').value.trim()]).filter(([t]) => t);
+      const btn = $('save-btn'); btn.disabled = true; btn.textContent = 'Saving…';
+      try { site = await api('/site', { method: 'PATCH', body }); fill(); toast('Website updated'); $('save-note').textContent = 'Saved. The website shows these changes now.'; }
+      catch (err) { toast(err.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Save changes'; }
+    });
+
+    document.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => $(b.dataset.pick + '_file').click()));
+    for (const kind of ['hero', 'about']) {
+      $(kind + '_file').addEventListener('change', async e => {
+        const f = e.target.files[0]; if (!f) return;
+        const fd = new FormData(); fd.append('image', f);
+        try { site = await api(`/site/image?kind=${kind}`, { method: 'POST', form: fd }); fill(); toast('Photo updated'); } catch (err) { toast(err.message, true); }
+        e.target.value = '';
+      });
+    }
+    document.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', async () => {
+      try { site = await api(`/site/image?kind=${b.dataset.reset}`, { method: 'DELETE' }); fill(); toast('Back to the default photo'); } catch (err) { toast(err.message, true); }
+    }));
+  })();
+</script>
+</body>
+</html>

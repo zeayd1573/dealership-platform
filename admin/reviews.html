@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reviews · Dealer admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side"></aside>
+  <main class="main">
+    <div class="topbar"><div><h1>Reviews</h1><p>Approve reviews to show them on the website. Rejected ones stay private.</p></div></div>
+    <div class="toolbar"><div class="tabs" id="tabs"><button aria-selected="true" data-f="pending">Waiting</button><button aria-selected="false" data-f="approved">On the website</button><button aria-selected="false" data-f="rejected">Rejected</button></div></div>
+    <div class="cards" id="cards"></div>
+  </main>
+</div>
+<script src="js/admin.js"></script>
+<script>
+  (async () => {
+    await renderShell('reviews.html');
+    const $ = id => document.getElementById(id);
+    let all = [], filter = 'pending';
+    const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+    async function load() { all = await api('/reviews'); render(); }
+    function render() {
+      const list = all.filter(r => r.status === filter);
+      $('cards').innerHTML = list.length ? list.map(r => `
+        <article class="card"><div class="card-body">
+          <div><div class="stars">${stars(Number(r.rating) || 0)}</div><div class="card-title">${esc(r.customer_name)}</div><div class="card-sub">${timeAgo(r.created_at)}</div></div>
+          <p style="margin:0">${esc(r.review_text || 'No comment left.')}</p>
+          <div class="card-actions">
+            ${filter !== 'approved' ? `<button class="btn btn-primary" data-set="approved" data-id="${r.id}">Approve</button>` : `<button class="btn btn-outline" data-set="pending" data-id="${r.id}">Hide</button>`}
+            ${filter !== 'rejected' ? `<button class="btn btn-outline" data-set="rejected" data-id="${r.id}">Reject</button>` : `<button class="btn btn-danger" data-del="${r.id}">Delete</button>`}
+          </div>
+        </div></article>`).join('') : `<div class="empty" style="grid-column:1/-1"><h3>No reviews ${filter === 'pending' ? 'waiting' : 'here'}</h3><p>Reviews left on the website appear under Waiting first.</p></div>`;
+    }
+    $('cards').addEventListener('click', async e => {
+      const s = e.target.closest('[data-set]'), d = e.target.closest('[data-del]');
+      try {
+        if (s) { await api(`/reviews/${s.dataset.id}`, { method: 'PATCH', body: { status: s.dataset.set } }); toast('Review updated'); }
+        if (d && await confirmBox('Delete this review for good?')) { await api(`/reviews/${d.dataset.del}`, { method: 'DELETE' }); toast('Review deleted'); }
+        await load(); refreshCounts();
+      } catch (err) { toast(err.message, true); }
+    });
+    $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $('tabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x === b)); filter = b.dataset.f; render(); });
+    await load();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact | MHL Motors, Kilbeggan, Co. Westmeath</title>
+  <meta name="description" content="Contact MHL Motors on the Moate Road, Kilbeggan. Call, WhatsApp, email or drop in Monday to Saturday.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <div class="wrap page-head">
+    <div class="crumbs"><a href="/">Home</a><span>/</span><span>Contact</span></div>
+    <h1>Get in touch</h1>
+  </div>
+
+  <div class="wrap form-layout">
+    <div>
+      <div class="info-card" id="visit-card"></div>
+      <div class="visit-map" style="margin-top:20px"><iframe title="Map to MHL Motors" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=53.3701254,-7.508884&z=14&output=embed"></iframe></div>
+    </div>
+
+    <form class="panel" id="contact-form" novalidate>
+      <h2>Send us a message</h2>
+      <div data-step class="form-grid">
+        <div class="field"><label for="c-name">Name</label><input class="input" id="c-name" name="name" required autocomplete="name"></div>
+        <div class="field"><label for="c-phone">Phone</label><input class="input" id="c-phone" name="phone" type="tel" required autocomplete="tel"></div>
+        <div class="field full"><label for="c-email">Email</label><input class="input" id="c-email" name="email" type="email" required autocomplete="email"></div>
+        <div class="field full"><label for="c-msg">How can we help?</label><textarea class="input" id="c-msg" name="message" required></textarea></div>
+        <div class="field full"><label class="check"><input type="checkbox" name="consent" required> I agree to MHL Motors storing my details to respond to this enquiry.</label></div>
+        <div class="full form-actions-row form-actions"><button class="btn btn-primary" type="submit">Send message</button></div>
+      </div>
+      <div class="form-msg"></div>
+    </form>
+  </div>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/js/site.js"></script>
+  <script src="/js/forms.js"></script>
+  <script>
+    (async () => {
+      const { dealer } = await loadStock();
+      renderChrome(dealer, '/contact');
+      document.getElementById('visit-card').innerHTML = `
+        <h3>MHL Motors</h3>
+        <div class="info-row">${ICONS.pin}<div><strong>Address</strong>${dealer.address}</div></div>
+        <div class="info-row">${ICONS.phone}<div><strong>Phone</strong><a href="${dealer.phoneHref}">${dealer.phone}</a></div></div>
+        <div class="info-row">${ICONS.mail}<div><strong>Email</strong><a href="mailto:${dealer.email}">${dealer.email}</a></div></div>
+        <div class="info-row">${ICONS.clock}<div><strong>Opening hours</strong><dl class="hours">${dealer.hours.map(([d, h]) => `<dt>${d}</dt><dd>${h}</dd>`).join('')}</dl></div></div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn btn-primary" href="${dealer.maps}" target="_blank" rel="noopener">Get directions</a>
+          <a class="btn btn-whatsapp" href="${dealer.whatsapp}" target="_blank" rel="noopener">${ICONS.whatsapp} WhatsApp</a>
+        </div>`;
+      initSteppedForm(document.getElementById('contact-form'), `${API}/enquiries`, { type: 'contact' });
+    })();
+  </script>
+</body>
+</html>

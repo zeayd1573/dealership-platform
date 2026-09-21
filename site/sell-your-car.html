@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sell or Trade In Your Car | MHL Motors, Kilbeggan</title>
+  <meta name="description" content="Get a valuation for your car from MHL Motors. We buy cars outright and take trade-ins against any car in stock.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <div class="wrap page-head">
+    <div class="crumbs"><a href="/">Home</a><span>/</span><span>Sell your car</span></div>
+    <h1>Sell or trade in your car</h1>
+  </div>
+
+  <div class="wrap form-layout">
+    <div>
+      <p class="lede-dark">Turn your old car into cash or put it against your next one. Tell us a little about it and we'll come back with a fair valuation, usually within a day.</p>
+      <ul class="checklist">
+        <li><span data-icon="check"></span>We buy cars, SUVs and vans outright</li>
+        <li><span data-icon="check"></span>Trade-in value can be your finance deposit</li>
+        <li><span data-icon="check"></span>No fees, no pressure, no waiting around</li>
+      </ul>
+      <div class="info-card">
+        <h3>Prefer to talk?</h3>
+        <p class="muted" style="font-size:.92rem">Send a few photos and your reg on WhatsApp and Michael will give you a ballpark figure straight away.</p>
+        <a class="btn btn-whatsapp" id="wa-link" href="#" target="_blank" rel="noopener"><span data-icon="whatsapp"></span> WhatsApp us</a>
+      </div>
+    </div>
+
+    <form class="panel stepped" id="sell-form" novalidate>
+      <div class="steps">
+        <span class="step-dot" data-step-dot>1<em>Your details</em></span>
+        <span class="step-dot" data-step-dot>2<em>Your car</em></span>
+        <span class="step-dot" data-step-dot>3<em>Condition</em></span>
+      </div>
+
+      <div data-step class="form-grid">
+        <div class="field"><label for="s-first">First name</label><input class="input" id="s-first" name="first_name" required autocomplete="given-name"></div>
+        <div class="field"><label for="s-last">Surname</label><input class="input" id="s-last" name="last_name" required autocomplete="family-name"></div>
+        <div class="field"><label for="s-phone">Phone</label><input class="input" id="s-phone" name="phone" type="tel" required autocomplete="tel"></div>
+        <div class="field"><label for="s-email">Email</label><input class="input" id="s-email" name="email" type="email" required autocomplete="email"></div>
+        <div class="full form-actions-row"><button class="btn btn-dark" type="button" data-next>Continue</button></div>
+      </div>
+
+      <div data-step class="form-grid" hidden>
+        <div class="field"><label for="s-reg">Registration</label><input class="input reg" id="s-reg" name="reg" required placeholder="e.g. 181 WH 1021" autocapitalize="characters"></div>
+        <div class="field"><label for="s-km">Mileage (km)</label><input class="input" id="s-km" name="km" type="number" min="0" required></div>
+        <div class="field"><label for="s-make">Make</label><input class="input" id="s-make" name="make" required></div>
+        <div class="field"><label for="s-model">Model</label><input class="input" id="s-model" name="model" required></div>
+        <div class="field"><label for="s-year">Year</label><input class="input" id="s-year" name="year" type="number" min="1990" max="2026"></div>
+        <div class="field"><label for="s-fuel">Fuel</label><select class="select" id="s-fuel" name="fuel"><option>Diesel</option><option>Petrol</option><option>Hybrid</option><option>Plug-in Hybrid</option><option>Electric</option></select></div>
+        <div class="full form-actions-row"><button class="btn btn-outline" type="button" data-back>Back</button><button class="btn btn-dark" type="button" data-next>Continue</button></div>
+      </div>
+
+      <div data-step class="form-grid" hidden>
+        <div class="field"><label for="s-nct">NCT expiry</label><input class="input" id="s-nct" name="nct" type="month"></div>
+        <div class="field"><label for="s-owners">Previous owners</label><input class="input" id="s-owners" name="owners" type="number" min="0"></div>
+        <div class="field full"><label for="s-cond">Condition, service history, anything we should know</label><textarea class="input" id="s-cond" name="message" placeholder="e.g. full service history, two keys, small scrape on rear bumper"></textarea></div>
+        <div class="field full"><label for="s-intent">What would you like to do?</label><select class="select" id="s-intent" name="intent"><option>Trade in against a car in stock</option><option>Sell outright</option><option>Not sure yet</option></select></div>
+        <div class="field full"><label class="check"><input type="checkbox" name="consent" required> I agree to MHL Motors storing my details to respond to this enquiry.</label></div>
+        <div class="full form-actions-row form-actions"><button class="btn btn-outline" type="button" data-back>Back</button><button class="btn btn-primary" type="submit">Get my valuation</button></div>
+      </div>
+      <div class="form-msg"></div>
+    </form>
+  </div>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/js/site.js"></script>
+  <script src="/js/forms.js"></script>
+  <script>
+    (async () => {
+      const { dealer } = await loadStock();
+      renderChrome(dealer, '/sell-your-car');
+      document.getElementById('wa-link').href = dealer.whatsapp + '?text=' + encodeURIComponent('Hi Michael, I\'d like a valuation on my car.');
+      document.querySelectorAll('[data-icon]').forEach(el => el.outerHTML = ICONS[el.dataset.icon]);
+      initSteppedForm(document.getElementById('sell-form'), `${API}/enquiries`, { type: 'valuation' });
+    })();
+  </script>
+</body>
+</html>

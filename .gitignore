@@ -1,0 +1,16 @@
+# dependencies & build
+node_modules/
+api/dist/
+api/.wrangler/
+tools/node_modules/
+
+# secrets
+api/.dev.vars
+*.env
+
+# scraped MHL photos (111 MB) — live copies are in R2; rebuild with tools/mhl-stock/scrape-build.js
+tools/mhl-stock/photos/
+
+# OS / editor
+.DS_Store
+server.log

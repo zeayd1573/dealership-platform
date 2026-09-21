@@ -1,0 +1,40 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "api"
+      ],
+      "port": 8787
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "serve",
+        "admin",
+        "-l",
+        "3100",
+        "--no-clipboard"
+      ],
+      "port": 3100
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "serve",
+        "site",
+        "-l",
+        "3102",
+        "--no-clipboard"
+      ],
+      "port": 3102
+    }
+  ]
+}

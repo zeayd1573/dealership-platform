@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Dealer admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="login-page">
+  <div class="login-box">
+    <h1 id="title">Sign in</h1>
+    <p class="lead">Manage your stock, enquiries and reviews.</p>
+    <form id="login-form">
+      <div class="field"><label for="username">Username</label><input class="input" id="username" name="username" required autofocus autocomplete="username"></div>
+      <div class="field"><label for="password">Password</label><input class="input" id="password" name="password" type="password" required autocomplete="current-password"></div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit">Sign in</button>
+      <div class="err-box" id="err"></div>
+    </form>
+  </div>
+  <script src="js/admin.js"></script>
+  <script>
+    (async () => {
+      const params = new URLSearchParams(location.search);
+      const err = document.getElementById('err');
+      const show = m => { err.textContent = m; err.classList.toggle('show', !!m); };
+      if (getToken() && !params.get('expired')) return location.replace(params.get('next') || 'index.html');
+      if (params.get('expired')) show('Your session has expired. Please sign in again.');
+      try { const d = await fetch(API + '/public/dealer').then(r => r.json()); document.getElementById('title').textContent = d.name; } catch {}
+      document.getElementById('login-form').addEventListener('submit', async e => {
+        e.preventDefault(); show('');
+        const btn = e.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Signing in…';
+        try {
+          const d = await api('/auth/login', { method: 'POST', body: { username: e.target.username.value.trim(), password: e.target.password.value } });
+          setToken(d.token); location.replace(params.get('next') || 'index.html');
+        } catch (ex) { show(/Failed to fetch/.test(ex.message) ? 'Cannot reach the server. Is the API running?' : ex.message); btn.disabled = false; btn.textContent = 'Sign in'; }
+      });
+    })();
+  </script>
+</body>
+</html>

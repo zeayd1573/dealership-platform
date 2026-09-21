@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Car Sourcing | MHL Motors, Kilbeggan</title>
+  <meta name="description" content="Can't find the car you want? MHL Motors will source it for you from Ireland or the UK using our trade contacts and buying power.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <div class="wrap page-head">
+    <div class="crumbs"><a href="/">Home</a><span>/</span><span>Car sourcing</span></div>
+    <h1>We'll find the car you're after</h1>
+  </div>
+
+  <div class="wrap form-layout">
+    <div>
+      <p class="lede-dark">Nothing in stock that suits? Tell us what you're looking for and we'll use our contacts in Ireland and the UK to track it down, then use our buying power to get it at a better price than you'd manage alone.</p>
+      <ul class="checklist">
+        <li><span data-icon="check"></span>Any make, model or spec, including commercials</li>
+        <li><span data-icon="check"></span>Every sourced car is history-checked and inspected before you see it</li>
+        <li><span data-icon="check"></span>Finance and trade-in available on sourced cars too</li>
+      </ul>
+    </div>
+
+    <form class="panel" id="source-form" novalidate>
+      <div data-step class="form-grid">
+        <div class="field"><label for="c-name">Name</label><input class="input" id="c-name" name="name" required autocomplete="name"></div>
+        <div class="field"><label for="c-phone">Phone</label><input class="input" id="c-phone" name="phone" type="tel" required autocomplete="tel"></div>
+        <div class="field full"><label for="c-email">Email</label><input class="input" id="c-email" name="email" type="email" required autocomplete="email"></div>
+        <div class="field"><label for="c-make">Make</label><input class="input" id="c-make" name="make" required placeholder="e.g. Toyota"></div>
+        <div class="field"><label for="c-model">Model</label><input class="input" id="c-model" name="model" placeholder="e.g. RAV4"></div>
+        <div class="field"><label for="c-year">Year from</label><input class="input" id="c-year" name="year_from" type="number" min="2000" max="2026" placeholder="2019"></div>
+        <div class="field"><label for="c-budget">Budget up to (€)</label><input class="input" id="c-budget" name="budget" type="number" min="0" step="500" placeholder="25000"></div>
+        <div class="field"><label for="c-fuel">Fuel</label><select class="select" id="c-fuel" name="fuel"><option value="">Any</option><option>Diesel</option><option>Petrol</option><option>Hybrid</option><option>Plug-in Hybrid</option><option>Electric</option></select></div>
+        <div class="field"><label for="c-trans">Gearbox</label><select class="select" id="c-trans" name="transmission"><option value="">Any</option><option>Automatic</option><option>Manual</option></select></div>
+        <div class="field full"><label for="c-notes">Must-haves and anything else</label><textarea class="input" id="c-notes" name="message" placeholder="e.g. 7 seats, tow bar, under 100,000 km"></textarea></div>
+        <div class="field full"><label class="check"><input type="checkbox" name="consent" required> I agree to MHL Motors storing my details to respond to this enquiry.</label></div>
+        <div class="full form-actions-row form-actions"><button class="btn btn-primary" type="submit">Send request</button></div>
+      </div>
+      <div class="form-msg"></div>
+    </form>
+  </div>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/js/site.js"></script>
+  <script src="/js/forms.js"></script>
+  <script>
+    (async () => {
+      const { dealer } = await loadStock();
+      renderChrome(dealer, '/car-sourcing');
+      document.querySelectorAll('[data-icon]').forEach(el => el.outerHTML = ICONS[el.dataset.icon]);
+      initSteppedForm(document.getElementById('source-form'), `${API}/enquiries`, { type: 'sourcing' });
+    })();
+  </script>
+</body>
+</html>

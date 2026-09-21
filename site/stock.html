@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Used Cars for Sale | MHL Motors, Kilbeggan</title>
+  <meta name="description" content="Browse all used cars, SUVs and vans for sale at MHL Motors, Kilbeggan, Co. Westmeath. Filter by make, price, fuel and more.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <div class="wrap page-head">
+    <div class="crumbs"><a href="/">Home</a><span>/</span><span>Used cars</span></div>
+    <h1 id="page-title">Used cars</h1>
+  </div>
+
+  <div class="wrap stock-layout">
+    <aside class="filters" id="filters" aria-label="Filter cars">
+      <h2>Filter <button type="button" id="clear-filters">Clear all</button><button type="button" class="btn btn-sm btn-outline filter-close" id="filter-close" style="display:none">Done</button></h2>
+
+      <div class="filter-group">
+        <label for="f-make">Make</label>
+        <select class="select" id="f-make" name="make"><option value="">All makes</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Price</label>
+        <input type="range" id="f-max" min="0" max="50000" step="1000" value="50000" aria-label="Maximum price">
+        <div class="range-out"><span>€0</span><span id="f-max-out">€50,000</span></div>
+      </div>
+      <div class="filter-group">
+        <fieldset><legend>Body type</legend><div id="f-body"></div></fieldset>
+      </div>
+      <div class="filter-group">
+        <fieldset><legend>Fuel</legend><div id="f-fuel"></div></fieldset>
+      </div>
+      <div class="filter-group">
+        <fieldset><legend>Transmission</legend><div id="f-trans"></div></fieldset>
+      </div>
+      <div class="filter-group">
+        <label for="f-year">Year from</label>
+        <select class="select" id="f-year"><option value="">Any year</option></select>
+      </div>
+      <div class="filter-group">
+        <label class="check"><input type="checkbox" id="f-saved"> Saved cars only</label>
+      </div>
+    </aside>
+
+    <section>
+      <div class="results-bar">
+        <h2 id="results-count">Loading…</h2>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn btn-outline btn-sm filter-toggle" type="button" id="filter-open">Filters</button>
+          <div class="sort"><label for="sort">Sort</label>
+            <select class="select" id="sort">
+              <option value="newest">Newest first</option>
+              <option value="price-asc">Price: low to high</option>
+              <option value="price-desc">Price: high to low</option>
+              <option value="km-asc">Lowest mileage</option>
+              <option value="year-desc">Year: newest</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="active-filters" id="active-filters"></div>
+      <div class="car-grid" id="grid"></div>
+    </section>
+  </div>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/js/site.js"></script>
+  <script>
+    (async () => {
+      const { dealer, cars } = await loadStock();
+      renderChrome(dealer, '/stock');
+
+      const $ = id => document.getElementById(id);
+      const params = new URLSearchParams(location.search);
+      const state = { make: params.get('make') || '', max: Number(params.get('max')) || 50000, body: new Set(), fuel: new Set(), trans: new Set(), year: '', saved: params.get('saved') === '1', sort: 'newest' };
+      if (params.get('body')) state.body.add(params.get('body'));
+      if (params.get('fuel')) state.fuel.add(params.get('fuel'));
+
+      // Build filter controls from the data
+      const counts = k => cars.reduce((m, c) => (m[c[k]] = (m[c[k]] || 0) + 1, m), {});
+      const uniq = k => Object.keys(counts(k)).filter(Boolean).sort();
+      uniq('make').forEach(m => $('f-make').add(new Option(`${m} (${counts('make')[m]})`, m)));
+      $('f-make').value = state.make;
+      const checks = (id, key, set) => {
+        const cnt = counts(key);
+        $(id).innerHTML = uniq(key).map(v => `<label class="check"><input type="checkbox" value="${fmt.esc(v)}" ${set.has(v) ? 'checked' : ''}> ${fmt.esc(v)} <span class="n">${cnt[v]}</span></label>`).join('');
+        $(id).addEventListener('change', e => { e.target.checked ? set.add(e.target.value) : set.delete(e.target.value); render(); });
+      };
+      checks('f-body', 'body', state.body); checks('f-fuel', 'fuel', state.fuel); checks('f-trans', 'trans', state.trans);
+      const maxPrice = Math.ceil(Math.max(...cars.map(c => c.price)) / 5000) * 5000;
+      $('f-max').max = maxPrice; $('f-max').value = Math.min(state.max, maxPrice); state.max = Number($('f-max').value);
+      [...new Set(cars.map(c => c.year))].sort((a, b) => b - a).forEach(y => $('f-year').add(new Option(y, y)));
+      $('f-saved').checked = state.saved;
+
+      $('f-make').addEventListener('change', e => { state.make = e.target.value; render(); });
+      $('f-max').addEventListener('input', e => { state.max = Number(e.target.value); $('f-max-out').textContent = fmt.eur(state.max); render(); });
+      $('f-year').addEventListener('change', e => { state.year = e.target.value; render(); });
+      $('f-saved').addEventListener('change', e => { state.saved = e.target.checked; render(); });
+      $('sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
+      $('clear-filters').addEventListener('click', () => {
+        state.make = ''; state.max = maxPrice; state.body.clear(); state.fuel.clear(); state.trans.clear(); state.year = ''; state.saved = false;
+        $('f-make').value = ''; $('f-max').value = maxPrice; $('f-max-out').textContent = fmt.eur(maxPrice); $('f-year').value = ''; $('f-saved').checked = false;
+        document.querySelectorAll('.filters input[type=checkbox]').forEach(c => c.checked = false); $('f-saved').checked = false;
+        render();
+      });
+      $('filter-open').addEventListener('click', () => { $('filters').classList.add('open'); $('filter-close').style.display = ''; });
+      $('filter-close').addEventListener('click', () => $('filters').classList.remove('open'));
+      $('f-max-out').textContent = fmt.eur(state.max);
+
+      const sorters = {
+        newest: (a, b) => b.year - a.year || a.km - b.km,
+        'price-asc': (a, b) => a.price - b.price, 'price-desc': (a, b) => b.price - a.price,
+        'km-asc': (a, b) => a.km - b.km, 'year-desc': (a, b) => b.year - a.year
+      };
+
+      function render() {
+        const saved = getSaved();
+        const list = cars.filter(c =>
+          (!state.make || c.make === state.make) && c.price <= state.max &&
+          (!state.body.size || state.body.has(c.body)) && (!state.fuel.size || state.fuel.has(c.fuel)) &&
+          (!state.trans.size || state.trans.has(c.trans)) && (!state.year || c.year >= Number(state.year)) &&
+          (!state.saved || saved.includes(c.id))
+        ).sort(sorters[state.sort]);
+
+        $('results-count').textContent = `${list.length} ${list.length === 1 ? 'car' : 'cars'}${list.length !== cars.length ? ` of ${cars.length}` : ''}`;
+        $('page-title').textContent = state.saved ? 'Saved cars' : 'Used cars';
+        $('grid').innerHTML = list.length ? list.map(carCard).join('')
+          : `<div class="empty"><h3>No cars match those filters</h3><p>Try widening your search, or <a href="/car-sourcing" style="text-decoration:underline">ask us to source one</a>.</p></div>`;
+
+        const chips = [];
+        if (state.make) chips.push(['Make: ' + state.make, () => { state.make = ''; $('f-make').value = ''; }]);
+        if (state.max < maxPrice) chips.push(['Up to ' + fmt.eur(state.max), () => { state.max = maxPrice; $('f-max').value = maxPrice; $('f-max-out').textContent = fmt.eur(maxPrice); }]);
+        [['body', 'f-body'], ['fuel', 'f-fuel'], ['trans', 'f-trans']].forEach(([k, id]) => state[k].forEach(v => chips.push([v, () => { state[k].delete(v); $(id).querySelector(`input[value="${v}"]`).checked = false; }])));
+        if (state.year) chips.push([state.year + ' or newer', () => { state.year = ''; $('f-year').value = ''; }]);
+        if (state.saved) chips.push(['Saved only', () => { state.saved = false; $('f-saved').checked = false; }]);
+        $('active-filters').innerHTML = chips.map(([t], i) => `<button type="button" data-chip="${i}">${fmt.esc(t)} ${ICONS.close}</button>`).join('');
+        $('active-filters').querySelectorAll('[data-chip]').forEach(b => b.addEventListener('click', () => { chips[b.dataset.chip][1](); render(); }));
+      }
+      render();
+    })();
+  </script>
+</body>
+</html>

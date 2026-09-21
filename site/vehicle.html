@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vehicle | MHL Motors</title>
+  <meta name="description" content="Used car for sale at MHL Motors, Kilbeggan.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="has-mobile-cta">
+  <header class="site-header"></header>
+
+  <div class="wrap page-head" style="padding-bottom:12px">
+    <div class="crumbs"><a href="/">Home</a><span>/</span><a href="/stock">Used cars</a><span>/</span><span id="crumb-name"></span></div>
+  </div>
+
+  <div class="wrap vehicle-top">
+    <div>
+      <div class="gallery-main">
+        <img id="main-img" src="" alt="" width="938" height="704">
+        <button class="gallery-nav prev" type="button" aria-label="Previous photo" id="g-prev"></button>
+        <button class="gallery-nav next" type="button" aria-label="Next photo" id="g-next"></button>
+        <span class="gallery-counter" id="g-counter"></span>
+      </div>
+      <div class="thumbs" id="thumbs"></div>
+      <div class="spec-grid" id="spec-grid"></div>
+    </div>
+
+    <aside class="vehicle-side">
+      <div class="vehicle-card" id="vehicle-card"></div>
+    </aside>
+  </div>
+
+  <div class="wrap vehicle-body">
+    <div>
+      <section class="panel"><h2>Description</h2><div class="description" id="description"></div></section>
+      <section class="panel"><h2>Features</h2><ul class="feature-list" id="features"></ul></section>
+      <section class="panel"><h2>Overview</h2><table class="overview-table" id="overview"></table></section>
+    </div>
+    <div>
+      <section class="panel calc" id="calc">
+        <h2>Finance calculator</h2>
+        <p>Adjust the deposit and term to see an indicative repayment. Subject to status and lender approval.</p>
+        <label for="calc-dep">Deposit <span id="calc-dep-out"></span></label>
+        <input type="range" id="calc-dep" min="0" max="50" step="5" value="10">
+        <label>Term</label>
+        <div class="term-btns" id="calc-terms"><button type="button" data-m="36">3 years</button><button type="button" data-m="48">4 years</button><button type="button" data-m="60" aria-pressed="true">5 years</button></div>
+        <div class="calc-result">
+          <div><span>Monthly</span><strong id="calc-monthly"></strong></div>
+          <div><span>Weekly</span><strong id="calc-weekly"></strong></div>
+        </div>
+        <small id="calc-note"></small>
+        <a class="btn btn-primary btn-block" href="/finance" style="margin-top:16px">Apply for finance</a>
+      </section>
+
+      <section class="panel" id="enquiry">
+        <h2>Ask about this car</h2>
+        <form id="enquiry-form" class="form-grid" novalidate>
+          <div class="field"><label for="e-name">Name</label><input class="input" id="e-name" name="name" required autocomplete="name"></div>
+          <div class="field"><label for="e-phone">Phone</label><input class="input" id="e-phone" name="phone" type="tel" required autocomplete="tel"></div>
+          <div class="field full"><label for="e-email">Email</label><input class="input" id="e-email" name="email" type="email" required autocomplete="email"></div>
+          <div class="field full"><label for="e-msg">Message</label><textarea class="input" id="e-msg" name="message"></textarea></div>
+          <div class="full"><button class="btn btn-dark btn-block" type="submit">Send enquiry</button></div>
+          <div class="full form-msg" id="e-status"></div>
+          <p class="full form-note">We'll only use your details to reply about this car.</p>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head"><div><p class="kicker">You might also like</p><h2>Similar cars in stock</h2></div><a class="btn" href="/stock">All cars</a></div>
+      <div class="car-grid" id="similar"></div>
+    </div>
+  </section>
+
+  <div class="mobile-cta" id="mobile-cta"></div>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <button class="close" type="button" aria-label="Close" id="lb-close"></button>
+    <button class="gallery-nav prev" type="button" aria-label="Previous" id="lb-prev"></button>
+    <img id="lb-img" src="" alt="">
+    <button class="gallery-nav next" type="button" aria-label="Next" id="lb-next"></button>
+  </div>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/js/site.js"></script>
+  <script>
+    (async () => {
+      const { dealer, cars } = await loadStock();
+      renderChrome(dealer, '/stock');
+      const $ = id => document.getElementById(id);
+      const id = Number((location.pathname.match(/\/cars\/(\d+)/) || [])[1]) || Number(new URLSearchParams(location.search).get('id'));
+      const c = await loadVehicle(id);
+      if (!c) { document.querySelector('.vehicle-top').innerHTML = '<div class="empty"><h3>Vehicle not found</h3><p><a href="/stock">Back to stock</a></p></div>'; return; }
+
+      if (/^Vehicle \|/.test(document.title)) document.title = `${c.name} for sale, ${fmt.eur(c.price)} | ${dealer.name}`;
+      $('crumb-name').textContent = c.name;
+
+      // Gallery
+      let i = 0;
+      const show = n => { i = (n + c.photos.length) % c.photos.length; $('main-img').src = c.photos[i]; $('main-img').alt = `${c.name} photo ${i + 1}`; $('g-counter').textContent = `${i + 1} / ${c.photos.length}`; $('lb-img').src = c.photos[i];
+        $('thumbs').querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-current', k === i)); };
+      $('thumbs').innerHTML = c.photos.map((p, k) => `<button type="button" aria-label="Photo ${k + 1}"><img src="${p}" alt="" loading="lazy"></button>`).join('');
+      $('thumbs').querySelectorAll('button').forEach((b, k) => b.addEventListener('click', () => show(k)));
+      $('g-prev').innerHTML = $('lb-prev').innerHTML = ICONS.chevL; $('g-next').innerHTML = $('lb-next').innerHTML = ICONS.chevR; $('lb-close').innerHTML = ICONS.close;
+      $('g-prev').onclick = () => show(i - 1); $('g-next').onclick = () => show(i + 1);
+      $('lb-prev').onclick = () => show(i - 1); $('lb-next').onclick = () => show(i + 1);
+      $('main-img').addEventListener('click', () => $('lightbox').classList.add('open'));
+      $('lb-close').onclick = () => $('lightbox').classList.remove('open');
+      $('lightbox').addEventListener('click', e => { if (e.target === e.currentTarget) $('lightbox').classList.remove('open'); });
+      document.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') show(i - 1); if (e.key === 'ArrowRight') show(i + 1); if (e.key === 'Escape') $('lightbox').classList.remove('open'); });
+      show(0);
+
+      // Spec strip
+      const specs = [['gauge', 'Mileage', fmt.km(c.km)], ['calendar', 'Year', c.year], ['fuel', 'Fuel', c.fuel], ['gear', 'Gearbox', c.trans], ['engine', 'Engine', c.engine + (c.bhp ? ' · ' + c.bhp : '')], ['car', 'Body', c.body], ['palette', 'Colour', c.colour], ['cert', 'NCT', c.nct]];
+      $('spec-grid').innerHTML = specs.map(([ic, l, v]) => `<div class="spec">${ICONS[ic]}<div><span>${l}</span><strong>${fmt.esc(v)}</strong></div></div>`).join('');
+
+      // Side card
+      const saved = getSaved().includes(c.id);
+      const wa = `${dealer.whatsapp}?text=${encodeURIComponent(`Hi Michael, I'm interested in the ${c.name} (${fmt.eur(c.price)}) on your website.`)}`;
+      $('vehicle-card').innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+          <div><h1>${fmt.esc(c.name)}</h1><p class="variant">${fmt.esc(c.variant)}</p></div>
+          <button class="save-btn" type="button" style="position:static;flex:none" aria-pressed="${saved}" aria-label="Save this car" data-save="${c.id}">${ICONS.heart}</button>
+        </div>
+        <div class="price-block">
+          <span class="price">${fmt.eur(c.price)}</span>
+          ${c.weekly ? `<span class="finance-note">or from <strong>€${c.weekly}</strong>/week · <strong>€${c.monthly}</strong>/month</span>` : ''}
+        </div>
+        <div class="cta-grid">
+          <a class="btn btn-primary btn-block-2" href="#enquiry">Make an enquiry</a>
+          <a class="btn btn-whatsapp" href="${wa}" target="_blank" rel="noopener">${ICONS.whatsapp} WhatsApp</a>
+          <a class="btn btn-outline" href="${dealer.phoneHref}">${ICONS.phone} Call</a>
+          <a class="btn btn-outline" href="/finance">Apply for finance</a>
+          <a class="btn btn-outline" href="/sell-your-car">Value my trade-in</a>
+        </div>
+        <div class="vehicle-meta">
+          <span>${ICONS.users} ${fmt.esc(c.owners)}</span>
+          ${c.tax ? `<span>${ICONS.tag} Road tax ${fmt.esc(c.tax)}/yr</span>` : ''}
+          <span>${ICONS.pin} Kilbeggan, Co. Westmeath</span>
+        </div>`;
+      $('mobile-cta').innerHTML = `<a class="btn btn-primary" href="#enquiry">Enquire</a><a class="btn btn-whatsapp" href="${wa}" target="_blank" rel="noopener">${ICONS.whatsapp} WhatsApp</a><a class="btn btn-outline" href="${dealer.phoneHref}" aria-label="Call">${ICONS.phone}</a>`;
+
+      // Body panels
+      $('description').textContent = c.blurb || 'Contact us for more details on this car.';
+      $('features').innerHTML = c.featureList.map(f => `<li>${ICONS.check}${fmt.esc(f)}</li>`).join('');
+      const ov = [['Make', c.make], ['Model', c.model], ['Year', c.year], ['Body', c.body], ['Colour', c.colour], ['Doors', c.doors], ['Seats', c.seats], ['Engine', c.engine], ['Power', c.bhp], ['Fuel', c.fuel], ['Transmission', c.trans], ['Mileage', fmt.km(c.km)], ['Owners', c.owners], ['NCT', c.nct], ['Annual road tax', c.tax], ['Tax due', c.taxDue]].filter(r => r[1]);
+      $('overview').innerHTML = ov.map(([k, v]) => `<tr><th>${k}</th><td>${fmt.esc(v)}</td></tr>`).join('');
+
+      // Finance calculator
+      let dep = 10, months = 60;
+      const calc = () => {
+        const m = monthlyPayment(c.price, dep, months);
+        $('calc-dep-out').textContent = `${dep}% (${fmt.eur(Math.round(c.price * dep / 100))})`;
+        $('calc-monthly').textContent = fmt.eur(Math.round(m)); $('calc-weekly').textContent = fmt.eur(Math.round(m * 12 / 52));
+        $('calc-note').textContent = `Based on ${fmt.eur(c.price)}, ${dep}% deposit, ${months / 12} years at 6.9% APR representative. Figures are illustrative only.`;
+      };
+      $('calc-dep').addEventListener('input', e => { dep = Number(e.target.value); calc(); });
+      $('calc-terms').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { months = Number(b.dataset.m); $('calc-terms').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); calc(); }));
+      calc();
+
+      // Enquiry form (posts to platform API when available; for now shows success)
+      $('enquiry-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const f = e.target; const st = $('e-status');
+        if (!f.name.value.trim() || !f.email.value.trim() || !f.phone.value.trim()) { st.className = 'form-msg err'; st.textContent = 'Please fill in your name, phone and email.'; return; }
+        const btn = f.querySelector('button'); btn.disabled = true; btn.textContent = 'Sending…';
+        try {
+          const res = await fetch(`${API}/enquiries`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'enquiry', vehicle_id: c.id, name: f.name.value, phone: f.phone.value, email: f.email.value, message: f.message.value }) }).catch(() => null);
+          if (!res || !res.ok) { const d = res ? await res.json().catch(() => ({})) : {}; st.className = 'form-msg err'; st.textContent = d.error || 'Sorry, we could not send that. Please call or WhatsApp us instead.'; return; }
+          st.className = 'form-msg ok'; st.textContent = 'Thanks, we have your enquiry and will be in touch shortly.';
+          f.reset();
+        } finally { btn.disabled = false; btn.textContent = 'Send enquiry'; }
+      });
+
+      // Similar cars: same body first, then closest price
+      const similar = cars.filter(x => x.id !== c.id).sort((a, b) => (b.body === c.body) - (a.body === c.body) || Math.abs(a.price - c.price) - Math.abs(b.price - c.price)).slice(0, 3);
+      $('similar').innerHTML = similar.map(carCard).join('');
+    })();
+  </script>
+</body>
+</html>

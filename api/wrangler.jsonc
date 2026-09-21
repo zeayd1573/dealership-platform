@@ -1,0 +1,36 @@
+{
+  // Dealer platform API — Cloudflare Worker (Hono) + D1 + R2 + Images.
+  // Local dev: `npm run dev` (everything runs locally, no account needed).
+  // Deploy: create the D1 database and R2 bucket, paste the D1 id below, set secrets, `npm run deploy`.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dealer-platform-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // The public site is served as static assets from the same Worker; /api/* is handled by code.
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    // Paths the Worker must handle before static assets: the API, SEO pages, and redirects from the old site.
+    "run_worker_first": ["/api/*", "/", "/cars/*", "/sitemap.xml", "/robots.txt", "/car-details", "/car-details/*", "/used-cars/*", "/apply-for-finance/*"]
+  },
+
+  "d1_databases": [
+    { "binding": "DB", "database_name": "dealer-platform", "database_id": "feb59f80-2447-4cfc-a828-9fdac6625489", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [
+    { "binding": "BUCKET", "bucket_name": "dealer-images" }
+  ],
+  "images": { "binding": "IMAGES" },
+
+  "vars": {
+    // Where uploaded images are served from. Locally the Worker streams them from R2 via /api/files/<key>.
+    // In production point this at the bucket's public domain, e.g. https://img.mhlmotors.ie
+    "PUBLIC_IMAGE_BASE": "/api/files",
+    "DEFAULT_DEALER_SLUG": "mhlmotors",
+    "CORS_ORIGINS": "http://localhost:3100,http://localhost:3101,http://localhost:3102,http://127.0.0.1:3102"
+  },
+  "observability": { "enabled": true }
+}

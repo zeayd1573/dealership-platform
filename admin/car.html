@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Car · Dealer admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side"></aside>
+  <main class="main">
+    <div class="topbar">
+      <div><a class="muted" href="index.html" style="display:inline-flex;align-items:center;gap:4px;margin-bottom:6px">${back} Back to stock</a><h1 id="title">Add a car</h1><p id="subtitle">Fill in what you know. You can always come back and add more later.</p></div>
+      <div class="actions" id="top-actions"></div>
+    </div>
+
+    <section class="lookup" id="lookup">
+      <div><h2>Start with the reg</h2><p>Type the registration and we'll fill in the make, model, year and more for you.</p></div>
+      <form id="lookup-form"><input class="input reg" id="lookup-reg" placeholder="e.g. 181 WH 1021" autocomplete="off" spellcheck="false"><button class="btn btn-primary btn-lg" type="submit">Look up</button></form>
+      <div class="result" id="lookup-result" hidden></div>
+    </section>
+
+    <form id="car-form" novalidate>
+      <section class="panel">
+        <h2>The basics</h2>
+        <p class="lead">What the car is. These show on the website listing.</p>
+        <div class="grid-3">
+          <div class="field"><label for="reg">Registration</label><input class="input reg" id="reg" name="reg" required></div>
+          <div class="field"><label for="make">Make</label><input class="input" id="make" name="make" required placeholder="e.g. Toyota"></div>
+          <div class="field"><label for="model">Model</label><input class="input" id="model" name="model" required placeholder="e.g. Corolla"></div>
+          <div class="field full"><label for="variant">Variant / trim <span class="muted">(optional)</span></label><input class="input" id="variant" name="variant" placeholder="e.g. 1.8 Hybrid Luna 5DR Auto"></div>
+          <div class="field"><label for="year">Year</label><input class="input" id="year" name="year" type="number" min="1980" max="2027" required></div>
+          <div class="field"><label for="mileage">Mileage (km)</label><input class="input" id="mileage" name="mileage" type="number" min="0" required></div>
+          <div class="field"><label for="colour">Colour</label><input class="input" id="colour" name="colour" placeholder="e.g. Black"></div>
+          <div class="field"><label for="fuel_type">Fuel</label><select class="select" id="fuel_type" name="fuel_type"><option value="">Choose…</option><option>Diesel</option><option>Petrol</option><option>Hybrid</option><option>Petrol Hybrid</option><option>Diesel Hybrid</option><option>Petrol Plug-in Hybrid</option><option>Diesel Plug-in Hybrid</option><option>Electric</option></select></div>
+          <div class="field"><label for="transmission">Gearbox</label><select class="select" id="transmission" name="transmission"><option value="">Choose…</option><option>Manual</option><option>Automatic</option></select></div>
+          <div class="field"><label for="body_style">Body</label><select class="select" id="body_style" name="body_style"><option value="">Choose…</option><option>Hatchback</option><option>Saloon</option><option>Estate</option><option>SUV</option><option>MPV</option><option>Coupe</option><option>Convertible</option><option>Van</option><option>Pickup</option></select></div>
+          <div class="field"><label for="engine_size">Engine</label><input class="input" id="engine_size" name="engine_size" placeholder="e.g. 2.0L"></div>
+          <div class="field"><label for="owners">Previous owners</label><input class="input" id="owners" name="owners" type="number" min="0"></div>
+          <div class="field"><label for="nct_expiry">NCT / CVRT expiry</label><input class="input" id="nct_expiry" name="nct_expiry" type="month"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Price and status</h2>
+        <p class="lead">Live cars show on the website. Paused, reserved and sold cars are hidden.</p>
+        <div class="grid-3">
+          <div class="field"><label for="price">Asking price</label><div class="input-money"><input class="input" id="price" name="price" type="number" min="0" step="50" required></div><div class="hint" id="finance-hint"></div></div>
+          <div class="field"><label for="status">Status</label><select class="select" id="status" name="status"><option value="available">Live on website</option><option value="paused">Paused (hidden)</option><option value="reserved">Reserved</option><option value="sold">Sold</option></select></div>
+          <div class="field"><label>Homepage feature</label><label class="check" style="min-height:48px"><input type="checkbox" id="is_highlighted" name="is_highlighted"> Show in featured cars</label></div>
+        </div>
+      </section>
+
+      <section class="panel" id="photos-panel">
+        <h2>Photos</h2>
+        <p class="lead">The first photo is the main one buyers see. Drag photos to reorder. Aim for 8 or more.</p>
+        <div id="photos-body"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Description</h2>
+        <p class="lead">A few lines in your own words. Buyers read this.</p>
+        <textarea class="input" id="description" name="description" placeholder="e.g. One owner from new, full service history, timing belt done. Trade-ins welcome, finance arranged."></textarea>
+      </section>
+
+      <section class="panel">
+        <h2>Features</h2>
+        <p class="lead">Tap the ones this car has.</p>
+        <div class="chips" id="chips"></div>
+        <div class="chip-add"><input class="input" id="chip-new" placeholder="Add another…"><button class="btn btn-outline" type="button" id="chip-add-btn">Add</button></div>
+      </section>
+
+      <details class="panel">
+        <summary>More details <span class="muted" style="font-size:1rem;font-weight:500;margin-left:auto;margin-right:12px">optional</span></summary>
+        <div class="grid-3">
+          <div class="field"><label for="doors">Doors</label><input class="input" id="doors" name="doors" type="number" min="1" max="6"></div>
+          <div class="field"><label for="seats">Seats</label><input class="input" id="seats" name="seats" type="number" min="1" max="9"></div>
+          <div class="field"><label for="max_power">Power (BHP)</label><input class="input" id="max_power" name="max_power" type="number" min="0"></div>
+          <div class="field"><label for="road_tax">Road tax per year</label><div class="input-money"><input class="input" id="road_tax" name="road_tax" type="number" min="0"></div></div>
+          <div class="field"><label for="tax_due">Tax due</label><input class="input" id="tax_due" name="tax_due" type="month"></div>
+          <div class="field"><label for="co2">CO2 (g/km)</label><input class="input" id="co2" name="co2" type="number" min="0"></div>
+          <div class="field"><label for="fuel_economy">Fuel economy</label><input class="input" id="fuel_economy" name="fuel_economy" placeholder="e.g. 5.2 L/100km"></div>
+          <div class="field"><label for="warranty_type">Warranty</label><input class="input" id="warranty_type" name="warranty_type" placeholder="e.g. Dealer warranty"></div>
+          <div class="field"><label for="warranty_duration">Warranty length</label><input class="input" id="warranty_duration" name="warranty_duration" placeholder="e.g. 6 months"></div>
+          <div class="field"><label for="prev_price">Previous price <span class="muted">(shows a reduction)</span></label><div class="input-money"><input class="input" id="prev_price" name="prev_price" type="number" min="0"></div></div>
+          <div class="field"><label for="vin">VIN</label><input class="input" id="vin" name="vin"></div>
+          <div class="field"><label for="youtube_link">YouTube video</label><input class="input" id="youtube_link" name="youtube_link" placeholder="https://youtube.com/…"></div>
+          <div class="field"><label for="colour_description">Colour description</label><input class="input" id="colour_description" name="colour_description" placeholder="e.g. Pearl Black Metallic"></div>
+          <div class="field"><label>Commercial vehicle</label><label class="check" style="min-height:48px"><input type="checkbox" id="is_commercial" name="is_commercial"> Van, pickup or commercial (price ex VAT)</label></div>
+        </div>
+      </details>
+
+      <div class="savebar">
+        <div class="grow muted" id="save-note"></div>
+        <button class="btn btn-danger" type="button" id="archive-btn" hidden>Remove from stock</button>
+        <a class="btn btn-outline" href="index.html">Cancel</a>
+        <button class="btn btn-primary btn-lg" type="submit" id="save-btn">Save car</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script src="js/admin.js"></script>
+<script>
+  (async () => {
+    document.querySelectorAll('.topbar a.muted').forEach(a => a.innerHTML = I.back + ' Back to stock');
+    document.querySelector('details summary').insertAdjacentHTML('beforeend', I.chev);
+    await renderShell('index.html');
+    const $ = id => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    let id = Number(params.get('id')) || null;
+    let car = null, images = [];
+
+    const SUGGESTED = ['Air Conditioning', 'Climate Control', 'Cruise Control', 'Parking Sensors', 'Reversing Camera', 'Bluetooth', 'Apple CarPlay', 'Android Auto', 'Sat Nav', 'Heated Seats', 'Leather Interior', 'Alloy Wheels', 'Sunroof', 'Panoramic Roof', 'Tow Bar', 'Full Service History', 'One Owner', 'Keyless Entry', 'Lane Assist', 'Electric Windows', 'Central Locking', 'Isofix', 'Roof Rails', 'Privacy Glass'];
+    let features = new Set();
+
+    function renderChips() {
+      const all = [...new Set([...SUGGESTED, ...features])];
+      $('chips').innerHTML = all.map(f => `<button type="button" class="chip" aria-pressed="${features.has(f)}" data-f="${esc(f)}">${features.has(f) ? I.check : ''}${esc(f)}</button>`).join('');
+    }
+    $('chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; features.has(b.dataset.f) ? features.delete(b.dataset.f) : features.add(b.dataset.f); renderChips(); });
+    const addChip = () => { const v = $('chip-new').value.trim(); if (v) { features.add(v); $('chip-new').value = ''; renderChips(); } };
+    $('chip-add-btn').addEventListener('click', addChip);
+    $('chip-new').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addChip(); } });
+
+    // ── Finance hint under price
+    const financeHint = () => { const p = Number($('price').value); const f = dealer?.finance; if (!p || !f) return $('finance-hint').textContent = ''; const loan = p * (1 - f.deposit_pct / 100), r = f.apr / 1200, n = f.term_months; const m = r ? loan * r / (1 - Math.pow(1 + r, -n)) : loan / n; $('finance-hint').textContent = `Website will show from €${Math.round(m * 12 / 52)}/week · €${Math.round(m)}/month`; };
+    $('price').addEventListener('input', financeHint);
+
+    // ── Reg lookup
+    $('lookup-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const plate = $('lookup-reg').value.trim(); if (!plate) return;
+      const btn = e.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Looking up…';
+      const out = $('lookup-result'); out.hidden = false; out.textContent = 'Checking the registration…';
+      try {
+        const d = await api(`/reg/${encodeURIComponent(plate)}`);
+        $('reg').value = plate.toUpperCase().replace(/\s+/g, '');
+        const map = { make: 'make', model: 'model', year: 'year', colour: 'colour', engine_size: 'engine_size', variant: 'variant', vin: 'vin', doors: 'doors', seats: 'seats' };
+        for (const [k, idk] of Object.entries(map)) if (d[k]) $(idk).value = d[k];
+        for (const k of ['fuel_type', 'transmission', 'body_style']) if (d[k]) setSelect($(k), d[k]);
+        out.innerHTML = `${d.mock ? '<strong>Demo data</strong> (reg lookup account not connected yet). ' : '<strong>Found it.</strong> '}Filled in: ${esc([d.year, d.make, d.model, d.variant].filter(Boolean).join(' '))}. Check the details below and add the price and photos.`;
+        $('mileage').focus();
+      } catch (err) { out.innerHTML = `<strong>Couldn't find that reg.</strong> ${esc(err.message)}. You can still fill the details in by hand.`; }
+      finally { btn.disabled = false; btn.textContent = 'Look up'; }
+    });
+    function setSelect(sel, val) { const o = [...sel.options].find(o => o.value.toLowerCase() === String(val).toLowerCase() || o.text.toLowerCase() === String(val).toLowerCase()); if (o) sel.value = o.value; else { sel.add(new Option(val, val)); sel.value = val; } }
+
+    // ── Photos
+    function renderPhotos() {
+      const body = $('photos-body');
+      if (!id) { body.innerHTML = `<div class="empty"><h3>Save the car first</h3><p>Once it's saved you can add photos here.</p></div>`; return; }
+      body.innerHTML = `
+        <div class="dropzone" id="drop">${I.upload}<strong>Add photos</strong><span>Click or drag JPG/PNG files here. Up to 20 at a time.</span><input type="file" id="file" accept="image/*" multiple hidden></div>
+        <div class="upload-progress" id="prog"><div></div></div>
+        <div class="photo-grid" id="pgrid">${images.map((im, i) => `
+          <div class="photo ${im.is_primary ? 'primary' : ''}" draggable="true" data-id="${im.id}" data-i="${i}">
+            <img src="${im.thumb_url}" alt="Photo ${i + 1}">
+            ${im.is_primary ? '<span class="tag">MAIN</span>' : ''}
+            <div class="tools">${im.is_primary ? '' : `<button type="button" data-primary="${im.id}">Make main</button>`}<button type="button" class="del" data-del="${im.id}">Delete</button></div>
+          </div>`).join('')}</div>
+        ${images.length ? `<p class="muted" style="margin-top:12px">${images.length} photo${images.length === 1 ? '' : 's'}</p>` : ''}`;
+      const drop = $('drop'), file = $('file');
+      drop.addEventListener('click', () => file.click());
+      drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+      drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+      drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); upload([...e.dataTransfer.files]); });
+      file.addEventListener('change', () => upload([...file.files]));
+      // reorder via drag and drop
+      let dragId = null;
+      $('pgrid').addEventListener('dragstart', e => { const p = e.target.closest('.photo'); if (!p) return; dragId = Number(p.dataset.id); p.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+      $('pgrid').addEventListener('dragover', e => { e.preventDefault(); });
+      $('pgrid').addEventListener('drop', async e => {
+        e.preventDefault(); const target = e.target.closest('.photo'); if (!target || dragId == null) return;
+        const from = images.findIndex(x => x.id === dragId), to = Number(target.dataset.i); if (from === to) return;
+        const [m] = images.splice(from, 1); images.splice(to, 0, m);
+        renderPhotos();
+        try { await api('/images/reorder', { method: 'PATCH', body: { order: images.map((im, i) => ({ id: im.id, sort_order: i })) } }); } catch (err) { toast(err.message, true); }
+      });
+      $('pgrid').addEventListener('dragend', e => e.target.closest?.('.photo')?.classList.remove('dragging'));
+    }
+    async function upload(files) {
+      files = files.filter(f => f.type.startsWith('image/')); if (!files.length) return;
+      const prog = $('prog'); prog.style.display = 'block'; let done = 0;
+      try {
+        // Two at a time keeps each request under the Worker CPU limit while photos are resized.
+        for (let i = 0; i < files.length; i += 2) {
+          const fd = new FormData(); files.slice(i, i + 2).forEach(f => fd.append('images', f));
+          let ok = false, lastErr;
+          for (let attempt = 1; attempt <= 3 && !ok; attempt++) {
+            try { await api(`/vehicles/${id}/images`, { method: 'POST', form: fd }); ok = true; }
+            catch (err) { lastErr = err; await new Promise(r => setTimeout(r, 1200 * attempt)); }
+          }
+          if (!ok) throw lastErr;
+          done += Math.min(2, files.length - i); prog.firstElementChild.style.width = Math.round(done / files.length * 100) + '%';
+        }
+        toast(`${done} photo${done === 1 ? '' : 's'} added`);
+      } catch (err) { toast(err.message, true); }
+      await reloadImages();
+    }
+    async function reloadImages() { const d = await api(`/vehicles/${id}`); images = d.images; renderPhotos(); }
+    $('photos-panel').addEventListener('click', async e => {
+      const p = e.target.closest('[data-primary]'), d = e.target.closest('[data-del]');
+      try {
+        if (p) { await api(`/images/${p.dataset.primary}/primary`, { method: 'PATCH' }); await reloadImages(); toast('Main photo updated'); }
+        if (d && await confirmBox('Delete this photo?')) { await api(`/images/${d.dataset.del}`, { method: 'DELETE' }); await reloadImages(); toast('Photo deleted'); }
+      } catch (err) { toast(err.message, true); }
+    });
+
+    // ── Load existing car
+    const F = ['reg', 'make', 'model', 'variant', 'year', 'mileage', 'colour', 'fuel_type', 'transmission', 'body_style', 'engine_size', 'owners', 'price', 'status', 'description', 'doors', 'seats', 'max_power', 'road_tax', 'co2', 'fuel_economy', 'warranty_type', 'warranty_duration', 'prev_price', 'vin', 'youtube_link', 'colour_description'];
+    if (id) {
+      try {
+        car = await api(`/vehicles/${id}`); images = car.images;
+        $('title').textContent = [car.year, car.make, car.model].filter(Boolean).join(' ');
+        $('subtitle').textContent = `${esc(car.reg)} · added ${timeAgo(car.created_at)}`;
+        document.title = `${car.make} ${car.model} · Dealer admin`;
+        $('lookup').hidden = true;
+        for (const k of F) { const el = $(k); if (!el) continue; const v = car[k]; if (v == null) continue; el.tagName === 'SELECT' ? setSelect(el, v) : el.value = v; }
+        $('nct_expiry').value = (car.nct_expiry || '').slice(0, 7); $('tax_due').value = (car.tax_due || '').slice(0, 7);
+        $('is_highlighted').checked = !!car.is_highlighted; $('is_commercial').checked = !!car.is_commercial;
+        features = new Set((car.features || '').split(',').map(s => s.trim()).filter(Boolean));
+        $('archive-btn').hidden = false;
+        $('top-actions').innerHTML = car.status !== 'archived' ? `<a class="btn btn-outline" href="${API_BASE}/cars/${car.id}" target="_blank" rel="noopener">View on website</a>` : '';
+        financeHint();
+      } catch (err) { toast(err.message, true); }
+    }
+    renderChips(); renderPhotos();
+
+    // ── Save
+    $('car-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      let ok = true;
+      for (const k of ['reg', 'make', 'model', 'year', 'mileage', 'price']) { const el = $(k); const bad = !el.value.trim(); el.classList.toggle('invalid', bad); if (bad) ok = false; }
+      if (!ok) { toast('Please fill in the highlighted fields', true); document.querySelector('.invalid').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      const body = {};
+      for (const k of F) { const el = $(k); if (el) body[k] = el.value === '' ? null : el.value; }
+      body.nct_expiry = $('nct_expiry').value ? $('nct_expiry').value + '-01' : null;
+      body.tax_due = $('tax_due').value ? $('tax_due').value + '-01' : null;
+      body.is_highlighted = $('is_highlighted').checked; body.is_commercial = $('is_commercial').checked;
+      body.features = [...features];
+      const btn = $('save-btn'); btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        if (id) { await api(`/vehicles/${id}`, { method: 'PATCH', body }); toast('Saved'); $('save-note').textContent = 'All changes saved'; }
+        else { const created = await api('/vehicles', { method: 'POST', body }); id = created.id; history.replaceState(null, '', `car.html?id=${id}`); toast('Car saved. Now add some photos.'); $('title').textContent = [body.year, body.make, body.model].join(' '); $('lookup').hidden = true; $('archive-btn').hidden = false; renderPhotos(); $('photos-panel').scrollIntoView({ behavior: 'smooth' }); }
+        refreshCounts();
+      } catch (err) { toast(err.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Save car'; }
+    });
+
+    $('archive-btn').addEventListener('click', async () => {
+      if (!await confirmBox('Remove this car from your stock? It will disappear from the website. You can\'t undo this from here.')) return;
+      try { await api(`/vehicles/${id}`, { method: 'DELETE' }); location.href = 'index.html'; } catch (err) { toast(err.message, true); }
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page not found | MHL Motors</title>
+  <meta name="robots" content="noindex">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <header class="site-header"></header>
+  <div class="wrap" style="padding:80px 0 100px;max-width:640px">
+    <p class="kicker">Error 404</p>
+    <h1 style="margin:10px 0 16px">That page isn't here.</h1>
+    <p class="lede-dark">The car may have been sold, or the link is out of date. Have a look at what's in stock now.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:24px">
+      <a class="btn btn-primary" href="/stock">See all cars</a>
+      <a class="btn" href="/">Home</a>
+    </div>
+  </div>
+  <footer class="site-footer"></footer>
+  <script src="/js/site.js"></script>
+  <script>(async () => { try { const { dealer } = await loadStock(); renderChrome(dealer); } catch {} })();</script>
+</body>
+</html>

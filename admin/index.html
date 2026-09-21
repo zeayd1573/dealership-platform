@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock · Dealer admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side"></aside>
+  <main class="main">
+    <div class="topbar">
+      <div><h1>Your stock</h1><p id="summary">Loading…</p></div>
+      <div class="actions"><a class="btn btn-primary btn-lg" href="car.html">${plus} Add a car</a></div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="toolbar">
+      <div class="tabs" id="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-f="">All</button>
+        <button role="tab" aria-selected="false" data-f="available">Live</button>
+        <button role="tab" aria-selected="false" data-f="paused">Paused</button>
+        <button role="tab" aria-selected="false" data-f="reserved">Reserved</button>
+        <button role="tab" aria-selected="false" data-f="sold">Sold</button>
+      </div>
+      <label class="search"><span class="sr-only"></span><input class="input" id="q" placeholder="Search make, model or reg" aria-label="Search stock"></label>
+      <select class="select" id="sort" aria-label="Sort">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="price-desc">Price: high to low</option>
+        <option value="price-asc">Price: low to high</option>
+      </select>
+    </div>
+
+    <div class="cards" id="cards"></div>
+  </main>
+</div>
+
+<script src="js/admin.js"></script>
+<script>
+  (async () => {
+    document.querySelector('.topbar .actions a').innerHTML = I.plus + ' Add a car';
+    await renderShell('index.html');
+    const $ = id => document.getElementById(id);
+    document.querySelector('.search').insertAdjacentHTML('afterbegin', I.search);
+    let cars = [], filter = '', q = '', sort = 'newest';
+
+    document.addEventListener('stats', e => {
+      const s = e.detail;
+      $('stats').innerHTML = [['Live on the website', s.vehicles.available, ''], ['Paused', s.vehicles.paused, ''], ['Reserved', s.vehicles.reserved, ''], ['New enquiries', s.unread_enquiries, s.unread_enquiries ? 'alert' : '']]
+        .map(([l, n, cls]) => `<div class="stat ${cls}"><span>${l}</span><strong>${n}</strong></div>`).join('');
+    });
+
+    async function load() {
+      cars = await api('/vehicles');
+      $('summary').textContent = `${cars.length} ${cars.length === 1 ? 'car' : 'cars'} on the books`;
+      render();
+    }
+
+    const card = c => {
+      const title = [c.year, c.make, c.model].filter(Boolean).join(' ');
+      const noPhotos = !c.photo_count;
+      const nct = monthLabel(c.nct_expiry);
+      const nctSoon = c.nct_expiry && (new Date(c.nct_expiry) - Date.now()) < 60 * 86400000;
+      return `
+      <article class="card" data-id="${c.id}">
+        <a class="card-media" href="car.html?id=${c.id}">
+          ${c.primary_thumb ? `<img src="${c.primary_thumb}" alt="" loading="lazy">` : '<div class="no-photo">No photos yet</div>'}
+          <span class="pill-status ${c.status}">${STATUS_LABEL[c.status] || c.status}</span>
+          <span class="photos">${I.camera} ${c.photo_count}</span>
+        </a>
+        <div class="card-body">
+          <div>
+            <div class="card-title">${esc(title)}</div>
+            <div class="card-sub" title="${esc(c.variant || '')}">${esc(c.variant || 'No variant set')}</div>
+          </div>
+          <div class="card-facts">
+            <div><span>Reg</span><strong>${esc(c.reg)}</strong></div>
+            <div><span>Mileage</span><strong>${km(c.mileage)}</strong></div>
+            <div><span>Fuel</span><strong>${esc(c.fuel_type || '—')}</strong></div>
+            <div><span>Gearbox</span><strong>${esc(c.transmission || '—')}</strong></div>
+            <div><span>NCT</span><strong class="${nctSoon ? 'warn' : ''}">${nct || '—'}</strong></div>
+            <div><span>Owners</span><strong>${c.owners ?? '—'}</strong></div>
+          </div>
+          <div class="card-price"><span class="price">${eur(c.price)}</span>${c.weekly ? `<small>from €${c.weekly}/wk</small>` : ''}</div>
+          <div class="card-actions">
+            <a class="btn btn-dark" href="car.html?id=${c.id}">Edit</a>
+            <select class="select" data-status="${c.id}" aria-label="Change status">
+              ${['available', 'paused', 'reserved', 'sold'].map(s => `<option value="${s}" ${c.status === s ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}
+            </select>
+          </div>
+          <div class="card-meta"><span>Added ${timeAgo(c.created_at)}</span>${noPhotos ? '<span class="warn">Add photos to go live</span>' : c.status === 'available' ? '<span>Visible on website</span>' : '<span>Hidden from website</span>'}</div>
+        </div>
+      </article>`;
+    };
+
+    function render() {
+      const sorters = { newest: (a, b) => b.id - a.id, oldest: (a, b) => a.id - b.id, 'price-desc': (a, b) => (b.price || 0) - (a.price || 0), 'price-asc': (a, b) => (a.price || 0) - (b.price || 0) };
+      const needle = q.trim().toLowerCase();
+      const list = cars.filter(c => (!filter || c.status === filter) && (!needle || [c.make, c.model, c.variant, c.reg, c.year].join(' ').toLowerCase().includes(needle))).sort(sorters[sort]);
+      $('cards').innerHTML = list.length ? list.map(card).join('') : `<div class="empty" style="grid-column:1/-1"><h3>${cars.length ? 'Nothing matches' : 'No cars yet'}</h3><p>${cars.length ? 'Try another filter or search.' : 'Add your first car and it will appear here.'}</p></div>`;
+    }
+
+    $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $('tabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x === b)); filter = b.dataset.f; render(); });
+    $('q').addEventListener('input', e => { q = e.target.value; render(); });
+    $('sort').addEventListener('change', e => { sort = e.target.value; render(); });
+    $('cards').addEventListener('change', async e => {
+      const sel = e.target.closest('[data-status]'); if (!sel) return;
+      const id = Number(sel.dataset.status); const status = sel.value;
+      try { await api(`/vehicles/${id}/status`, { method: 'PATCH', body: { status } }); const c = cars.find(x => x.id === id); c.status = status; toast(`${[c.year, c.make, c.model].join(' ')} marked as ${STATUS_LABEL[status]}`); render(); refreshCounts(); }
+      catch (err) { toast(err.message, true); }
+    });
+    await load();
+  })();
+</script>
+</body>
+</html>

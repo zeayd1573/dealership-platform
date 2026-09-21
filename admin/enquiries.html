@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enquiries · Dealer admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side"></aside>
+  <main class="main">
+    <div class="topbar">
+      <div><h1>Enquiries</h1><p id="summary">Everything sent from the website: car enquiries, finance applications, valuations, sourcing requests and contact messages.</p></div>
+    </div>
+    <div class="toolbar">
+      <div class="tabs" id="tabs">
+        <button aria-selected="true" data-f="">All</button>
+        <button aria-selected="false" data-f="unread">New</button>
+        <button aria-selected="false" data-f="enquiry">Cars</button>
+        <button aria-selected="false" data-f="finance">Finance</button>
+        <button aria-selected="false" data-f="valuation">Valuations</button>
+        <button aria-selected="false" data-f="sourcing">Sourcing</button>
+        <button aria-selected="false" data-f="contact">Contact</button>
+      </div>
+    </div>
+    <div class="inbox">
+      <div class="inbox-list" id="list"></div>
+      <div class="inbox-detail" id="detail"><div class="empty"><h3>Pick an enquiry</h3><p>Select one on the left to read it and reply.</p></div></div>
+    </div>
+  </main>
+</div>
+
+<script src="js/admin.js"></script>
+<script>
+  (async () => {
+    await renderShell('enquiries.html');
+    const $ = id => document.getElementById(id);
+    const TYPE = { enquiry: 'Car enquiry', finance: 'Finance', valuation: 'Valuation', sourcing: 'Sourcing', contact: 'Contact', review: 'Review' };
+    let all = [], filter = '', current = null;
+
+    async function load() { all = await api('/enquiries'); render(); if (current) show(current); }
+
+    function render() {
+      const list = all.filter(e => !filter || (filter === 'unread' ? e.status === 'unread' : e.type === filter));
+      $('list').innerHTML = list.length ? list.map(e => `
+        <button class="inbox-item ${e.status === 'read' ? 'read' : ''}" data-id="${e.id}" ${current === e.id ? 'aria-current="true"' : ''}>
+          <span class="dot"></span>
+          <span><span class="who">${esc(e.name)}</span><br><span class="what"><span class="type-tag ${e.type}">${TYPE[e.type] || e.type}</span>${esc(e.make ? `${e.year} ${e.make} ${e.model}` : (e.message || '').slice(0, 60))}</span></span>
+          <time>${timeAgo(e.created_at)}</time>
+        </button>`).join('') : `<div class="empty" style="border:0"><h3>Nothing here</h3><p>New enquiries from the website will show up in this list.</p></div>`;
+    }
+
+    async function show(id) {
+      const e = all.find(x => x.id === id); if (!e) return;
+      current = id; render();
+      if (e.status === 'unread') { try { await api(`/enquiries/${id}`, { method: 'PATCH', body: { status: 'read' } }); e.status = 'read'; render(); refreshCounts(); } catch {} }
+      const car = e.make ? `${e.year} ${e.make} ${e.model} (${e.reg})` : null;
+      const extra = e.payload ? Object.entries(e.payload).filter(([, v]) => v !== '' && v != null) : [];
+      const wa = e.phone ? `https://wa.me/${String(e.phone).replace(/\D/g, '').replace(/^0/, '353')}` : null;
+      $('detail').innerHTML = `
+        <div class="panel">
+          <div class="detail-head">
+            <div><span class="type-tag ${e.type}">${TYPE[e.type] || e.type}</span><h2 style="margin-top:8px">${esc(e.name)}</h2><p class="muted" style="margin:4px 0 0">${timeAgo(e.created_at)}${car ? ` · about the <a href="car.html?id=${e.vehicle_id}" style="text-decoration:underline">${esc(car)}</a>` : ''}</p></div>
+            <div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" id="toggle-read">${e.status === 'read' ? 'Mark as new' : 'Mark as read'}</button><button class="icon-btn" id="del" aria-label="Delete">${I.trash}</button></div>
+          </div>
+          <div class="detail-actions">
+            ${e.phone ? `<a class="btn btn-dark" href="tel:${esc(e.phone)}">${I.phone} Call ${esc(e.phone)}</a>` : ''}
+            ${wa ? `<a class="btn btn-outline" href="${wa}" target="_blank" rel="noopener">${I.whatsapp} WhatsApp</a>` : ''}
+            ${e.email ? `<a class="btn btn-outline" href="mailto:${esc(e.email)}?subject=${encodeURIComponent('Re: your enquiry' + (car ? ' about the ' + car : ''))}">${I.mail} Email</a>` : ''}
+          </div>
+          ${e.message ? `<h3 style="margin-bottom:8px">Message</h3><div class="message">${esc(e.message)}</div>` : ''}
+          ${extra.length ? `<h3 style="margin:18px 0 8px">Details they gave</h3><table class="kv">${extra.map(([k, v]) => `<tr><th>${esc(k.replace(/_/g, ' '))}</th><td>${esc(v)}</td></tr>`).join('')}</table>` : ''}
+          <table class="kv" style="margin-top:18px"><tr><th>Phone</th><td>${esc(e.phone || '—')}</td></tr><tr><th>Email</th><td>${esc(e.email || '—')}</td></tr></table>
+        </div>`;
+      $('toggle-read').addEventListener('click', async () => { const s = e.status === 'read' ? 'unread' : 'read'; await api(`/enquiries/${id}`, { method: 'PATCH', body: { status: s } }); e.status = s; render(); show(id); refreshCounts(); });
+      $('del').addEventListener('click', async () => { if (!await confirmBox('Delete this enquiry?')) return; await api(`/enquiries/${id}`, { method: 'DELETE' }); all = all.filter(x => x.id !== id); current = null; render(); $('detail').innerHTML = '<div class="empty"><h3>Deleted</h3><p>Pick another enquiry on the left.</p></div>'; refreshCounts(); toast('Enquiry deleted'); });
+    }
+
+    $('list').addEventListener('click', e => { const b = e.target.closest('.inbox-item'); if (b) show(Number(b.dataset.id)); });
+    $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $('tabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x === b)); filter = b.dataset.f; render(); });
+    await load();
+    const first = new URLSearchParams(location.search).get('id'); if (first) show(Number(first));
+  })();
+</script>
+</body>
+</html>
