@@ -134,7 +134,7 @@ files.get('/*', async c => {
       const wm = site.watermark_on === '1' && (site.watermark_scope === 'all' || !!row.is_primary);
       const sold = site.sold_stamp_on === '1' && (!!row.sold_overlay || row.status === 'sold');
       if (wm || sold) {
-        const sig = await shortHash(`v3|${wm ? `w:${site.watermark_position}:${site.watermark_opacity}:${site.watermark_key || 'default'}` : ''}|${sold ? 'sold' : ''}`);
+        const sig = await shortHash(`v4|${wm ? `w:${site.watermark_position}:${site.watermark_opacity}:${site.watermark_key || 'default'}` : ''}|${sold ? 'sold' : ''}`);
         const dkey = `derived/${sig}/${key}`;
         const cached = await c.env.BUCKET.get(dkey);
         if (cached) return send(cached, cache);
@@ -183,7 +183,10 @@ async function compose(c, bytes, site, wm, sold) {
   if (wm) {
     const logo = await overlayBytes(c, site.watermark_key, '/img/watermark.png');
     const w = Math.max(80, Math.round(W * 0.22)); const m = Math.round(W * 0.025);
-    const pos = { tl: { top: m, left: m }, tr: { top: m, right: m }, bl: { bottom: m, left: m }, br: { bottom: m, right: m } }[site.watermark_position] || { top: m, left: m };
+    const lw = w, lh = Math.round(w * 500 / 779); // watermark.png aspect; used to centre it
+    const pos = { tl: { top: m, left: m }, tr: { top: m, right: m }, bl: { bottom: m, left: m }, br: { bottom: m, right: m },
+      tc: { top: m, left: Math.round((W - lw) / 2) }, bc: { bottom: m, left: Math.round((W - lw) / 2) },
+      c: { top: Math.round((H - lh) / 2), left: Math.round((W - lw) / 2) } }[site.watermark_position] || { top: m, left: m };
     t = t.draw(IM.input(new Blob([logo]).stream()).transform({ width: w }), { opacity: Math.min(1, Math.max(.1, parseFloat(site.watermark_opacity) || .9)), ...pos });
   }
   if (sold) {
