@@ -36,7 +36,7 @@ function injectHead(html, m) {
 
 function dealerJsonLd(d, origin) {
   return { '@context': 'https://schema.org', '@graph': [
-    { '@type': 'AutoDealer', '@id': origin + '/#dealer', name: d.name, url: origin, telephone: d.phone, email: d.email, address: d.address, image: origin + '/img/hero-forecourt.jpg', openingHours: (JSON.parse(d.hours_json || '[]')).map(([day, h]) => `${day} ${h}`) },
+    { '@type': 'AutoDealer', '@id': origin + '/#dealer', name: d.name, url: origin, telephone: d.phone, email: d.email, address: d.address, logo: origin + '/img/mhl-logo-stacked.png', image: origin + '/img/hero-forecourt.jpg', openingHours: (JSON.parse(d.hours_json || '[]')).map(([day, h]) => `${day} ${h}`) },
     { '@type': 'WebSite', '@id': origin + '/#website', url: origin, name: d.name, publisher: { '@id': origin + '/#dealer' }, inLanguage: 'en-IE' }
   ] };
 }

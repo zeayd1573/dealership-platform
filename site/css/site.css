@@ -68,7 +68,7 @@ hr.rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
 /* ── Header ──────────────────────────────────────── */
 .site-header { background: var(--ink); color: #fff; position: sticky; top: 0; z-index: 50; }
 .site-header .wrap { display: flex; align-items: center; gap: 32px; min-height: 76px; }
-.brand { display: flex; align-items: center; } .brand img { height: 34px; width: auto; }
+.brand { display: flex; align-items: center; } .brand img { height: 40px; width: auto; }
 .brand small { font-family: var(--sans); font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
 .nav { display: flex; gap: 26px; margin-left: auto; }
 .nav a { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 6px 0; border-bottom: 2px solid transparent; color: rgba(255,255,255,.8); }
@@ -184,7 +184,7 @@ hr.rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
 /* ── Footer ──────────────────────────────────────── */
 .site-footer { background: var(--ink); color: rgba(255,255,255,.72); margin-top: 48px; }
 .site-footer .wrap { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; padding: 56px 0 32px; }
-.site-footer .brand { margin-bottom: 14px; } .site-footer .brand img { height: 30px; }
+.site-footer .brand { margin-bottom: 14px; } .site-footer .brand img { height: 36px; }
 .site-footer h4 { color: #fff; font-family: var(--sans); font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; margin-bottom: 14px; }
 .site-footer ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .site-footer a:hover { color: #fff; text-decoration: underline; }
@@ -379,7 +379,7 @@ textarea.input { min-height: 130px; resize: vertical; }
   .results-bar { flex-direction: column; align-items: stretch; }
   .thumbs { grid-template-columns: repeat(4, 1fr); }
   .cta-grid { grid-template-columns: 1fr; }
-  .brand img { height: 28px; }
+  .brand img { height: 32px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
 

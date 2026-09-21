@@ -134,7 +134,7 @@ files.get('/*', async c => {
       const wm = site.watermark_on === '1' && (site.watermark_scope === 'all' || !!row.is_primary);
       const sold = site.sold_stamp_on === '1' && (!!row.sold_overlay || row.status === 'sold');
       if (wm || sold) {
-        const sig = await shortHash(`v2|${wm ? `w:${site.watermark_position}:${site.watermark_opacity}:${site.watermark_key || 'default'}` : ''}|${sold ? 'sold' : ''}`);
+        const sig = await shortHash(`v3|${wm ? `w:${site.watermark_position}:${site.watermark_opacity}:${site.watermark_key || 'default'}` : ''}|${sold ? 'sold' : ''}`);
         const dkey = `derived/${sig}/${key}`;
         const cached = await c.env.BUCKET.get(dkey);
         if (cached) return send(cached, cache);
