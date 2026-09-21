@@ -36,7 +36,7 @@ vehicles.get('/:id', async c => {
   if (!row) return c.json({ error: 'Not found' }, 404);
   const { results } = await c.env.DB.prepare('SELECT * FROM vehicle_images WHERE vehicle_id = ? ORDER BY sort_order, id').bind(row.id).all();
   const settings = await getSettings(c.env, dealerId);
-  return c.json({ ...shapeVehicle(c.env, row, settings), images: results.map(i => shapeImage(c.env, i)) });
+  return c.json({ ...shapeVehicle(c.env, row, settings), images: results.map(i => shapeImage(c.env, i, !!(row.sold_overlay || row.status === 'sold'))) });
 });
 
 // POST /api/vehicles

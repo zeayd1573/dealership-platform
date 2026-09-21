@@ -9,6 +9,8 @@ import enquiries from './routes/enquiries.js';
 import { reviews, finance, highlighted, reg } from './routes/misc.js';
 import { site, publicSite } from './routes/site.js';
 import { registerSeo, notFound } from './routes/seo.js';
+import { getDefaultDealer } from './lib/util.js';
+import { getPhotoVersion } from './lib/site.js';
 
 const app = new Hono();
 
@@ -26,7 +28,9 @@ app.use('/api/*', async (c, next) => {
 // work from the admin panel or any other origin, not just the Worker's own pages.
 app.use('*', async (c, next) => {
   const base = c.env.PUBLIC_IMAGE_BASE || '/api/files';
-  if (base.startsWith('/')) c.env = Object.assign(Object.create(null), c.env, { PUBLIC_IMAGE_BASE: new URL(c.req.url).origin + base });
+  const dealer = await getDefaultDealer(c.env).catch(() => null);
+  const ver = dealer ? await getPhotoVersion(c.env, dealer.id).catch(() => '1') : '1';
+  c.env = Object.assign(Object.create(null), c.env, { PUBLIC_IMAGE_BASE: base.startsWith('/') ? new URL(c.req.url).origin + base : base, IMG_VER: ver });
   await next();
 });
 

@@ -45,7 +45,7 @@ pub.get('/vehicles/:id', async c => {
   if (!row) return c.json({ error: 'Vehicle not found' }, 404);
   const { results } = await c.env.DB.prepare('SELECT * FROM vehicle_images WHERE vehicle_id = ? ORDER BY is_primary DESC, sort_order, id').bind(row.id).all();
   const settings = await getSettings(c.env, row.dealer_id);
-  return c.json({ ...scrub(shapeVehicle(c.env, row, settings)), images: results.map(i => shapeImage(c.env, i)) });
+  return c.json({ ...scrub(shapeVehicle(c.env, row, settings)), images: results.map(i => shapeImage(c.env, i, !!(row.sold_overlay || row.status === 'sold'))) });
 });
 
 // GET /api/public/reviews — approved only

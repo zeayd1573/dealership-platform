@@ -33,15 +33,17 @@ export function pickVehicleFields(body, { forCreate = false } = {}) {
   return out;
 }
 
-export function imageUrl(env, key) {
+export function imageUrl(env, key, { sold = false } = {}) {
   if (!key) return null;
   const base = (env.PUBLIC_IMAGE_BASE || '/api/files').replace(/\/$/, '');
-  return `${base}/${key}`;
+  // Vehicle photos carry a version so browsers refetch when branding or the SOLD stamp changes.
+  const q = key.startsWith('vehicles/') ? `?v=${env.IMG_VER || 1}${sold ? '&s=1' : ''}` : '';
+  return `${base}/${key}${q}`;
 }
 
 /** Add url/thumb_url to image rows. */
-export function shapeImage(env, row) {
-  return { id: row.id, vehicle_id: row.vehicle_id, url: imageUrl(env, row.key), thumb_url: imageUrl(env, row.thumb_key), is_primary: !!row.is_primary, sort_order: row.sort_order, created_at: row.created_at };
+export function shapeImage(env, row, sold = false) {
+  return { id: row.id, vehicle_id: row.vehicle_id, url: imageUrl(env, row.key, { sold }), thumb_url: imageUrl(env, row.thumb_key, { sold }), is_primary: !!row.is_primary, sort_order: row.sort_order, created_at: row.created_at };
 }
 
 /** Standard amortised repayment. Returns { monthly, weekly } rounded to whole euro, or nulls. */
@@ -58,7 +60,8 @@ export function shapeVehicle(env, row, settings) {
   if (!row) return null;
   const v = { ...row };
   v.is_highlighted = !!v.is_highlighted; v.is_commercial = !!v.is_commercial; v.sold_overlay = !!v.sold_overlay;
-  if ('primary_key' in v) { v.primary_image = imageUrl(env, v.primary_key); v.primary_thumb = imageUrl(env, v.primary_thumb_key); delete v.primary_key; delete v.primary_thumb_key; }
+  const sold = v.sold_overlay || v.status === 'sold';
+  if ('primary_key' in v) { v.primary_image = imageUrl(env, v.primary_key, { sold }); v.primary_thumb = imageUrl(env, v.primary_thumb_key, { sold }); delete v.primary_key; delete v.primary_thumb_key; }
   if (settings) Object.assign(v, repayment(v.price, settings));
   return v;
 }
@@ -78,4 +81,5 @@ export async function getDefaultDealer(env) {
   return env.DB.prepare('SELECT * FROM dealers WHERE slug = ?').bind(env.DEFAULT_DEALER_SLUG || 'mhlmotors').first();
 }
 
+export const isSold = v => !!(v && (v.sold_overlay || v.status === 'sold'));
 export const isEmail = s => /^\S+@\S+\.\S+$/.test(String(s || ''));

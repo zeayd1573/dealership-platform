@@ -27,12 +27,18 @@ export const SITE_DEFAULTS = {
   watermark_scope: 'main',    // main = main photo only | all
   watermark_opacity: '0.9',
   watermark_key: '',          // R2 key of a custom watermark PNG; empty = built-in /img/watermark.png
-  sold_stamp_on: '1',         // '1' = cars flagged sold_overlay get the SOLD ribbon baked in
+  sold_stamp_on: '1',         // '1' = sold cars get the SOLD ribbon baked in
+  photo_version: '1',         // bumped whenever branding changes so photo URLs change and caches refresh
   footer_blurb: 'Family-run used car sales in Kilbeggan, Co. Westmeath. Quality cars, honest prices, finance arranged and trade-ins welcome.'
 };
 export const SITE_KEYS = Object.keys(SITE_DEFAULTS);
 
 /** Merged settings for a dealer, with image URLs resolved. */
+/** Just the photo version, for URL cache-busting (cheap, one row). */
+export async function getPhotoVersion(env, dealerId) {
+  return (await env.DB.prepare('SELECT value FROM site_settings WHERE dealer_id = ? AND key = ?').bind(dealerId, 'photo_version').first('value')) || '1';
+}
+
 export async function getSite(env, dealerId) {
   const { results } = await env.DB.prepare('SELECT key, value FROM site_settings WHERE dealer_id = ?').bind(dealerId).all();
   const s = { ...SITE_DEFAULTS };
@@ -48,8 +54,13 @@ export async function getSite(env, dealerId) {
   };
 }
 
+const BRANDING_KEYS = ['watermark_on', 'watermark_position', 'watermark_scope', 'watermark_opacity', 'watermark_key', 'sold_stamp_on'];
 export async function saveSite(env, dealerId, patch) {
   const stmts = [];
+  if (BRANDING_KEYS.some(k => k in patch)) {
+    const cur = parseInt(await env.DB.prepare('SELECT value FROM site_settings WHERE dealer_id = ? AND key = ?').bind(dealerId, 'photo_version').first('value'), 10) || 1;
+    patch = { ...patch, photo_version: String(cur + 1) };
+  }
   for (const [k, v] of Object.entries(patch)) {
     if (!SITE_KEYS.includes(k)) continue;
     let val = v;
