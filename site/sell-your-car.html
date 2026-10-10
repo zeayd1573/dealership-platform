@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sell or Trade In Your Car | MHL Motors, Kilbeggan</title>
-  <meta name="description" content="Get a valuation for your car from MHL Motors. We buy cars outright and take trade-ins against any car in stock.">
+  <title>Sell or Trade In Your Car | M6 Motors, Ballinasloe</title>
+  <meta name="description" content="Get a valuation for your car from M6 Motors. We buy cars outright and take trade-ins against any car in stock.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="/img/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/img/favicon.png">
   <link rel="stylesheet" href="/css/site.css">
 </head>
@@ -29,7 +29,7 @@
       </ul>
       <div class="info-card">
         <h3>Prefer to talk?</h3>
-        <p class="muted" style="font-size:.92rem">Send a few photos and your reg on WhatsApp and Michael will give you a ballpark figure straight away.</p>
+        <p class="muted" style="font-size:.92rem">Send a few photos and your reg on WhatsApp and we will give you a ballpark figure straight away.</p>
         <a class="btn btn-whatsapp" id="wa-link" href="#" target="_blank" rel="noopener"><span data-icon="whatsapp"></span> WhatsApp us</a>
       </div>
     </div>
@@ -64,7 +64,7 @@
         <div class="field"><label for="s-owners">Previous owners</label><input class="input" id="s-owners" name="owners" type="number" min="0"></div>
         <div class="field full"><label for="s-cond">Condition, service history, anything we should know</label><textarea class="input" id="s-cond" name="message" placeholder="e.g. full service history, two keys, small scrape on rear bumper"></textarea></div>
         <div class="field full"><label for="s-intent">What would you like to do?</label><select class="select" id="s-intent" name="intent"><option>Trade in against a car in stock</option><option>Sell outright</option><option>Not sure yet</option></select></div>
-        <div class="field full"><label class="check"><input type="checkbox" name="consent" required> I agree to MHL Motors storing my details to respond to this enquiry.</label></div>
+        <div class="field full"><label class="check"><input type="checkbox" name="consent" required> I agree to M6 Motors storing my details to respond to this enquiry.</label></div>
         <div class="full form-actions-row form-actions"><button class="btn btn-outline" type="button" data-back>Back</button><button class="btn btn-primary" type="submit">Get my valuation</button></div>
       </div>
       <div class="form-msg"></div>
@@ -73,13 +73,14 @@
 
   <footer class="site-footer"></footer>
 
+  <script src="/js/consent.js"></script>
   <script src="/js/site.js"></script>
   <script src="/js/forms.js"></script>
   <script>
     (async () => {
       const { dealer } = await loadStock();
       renderChrome(dealer, '/sell-your-car');
-      document.getElementById('wa-link').href = dealer.whatsapp + '?text=' + encodeURIComponent('Hi Michael, I\'d like a valuation on my car.');
+      document.getElementById('wa-link').href = dealer.whatsapp + '?text=' + encodeURIComponent('Hi, I\'d like a valuation on my car.');
       document.querySelectorAll('[data-icon]').forEach(el => el.outerHTML = ICONS[el.dataset.icon]);
       initSteppedForm(document.getElementById('sell-form'), `${API}/enquiries`, { type: 'valuation' });
     })();

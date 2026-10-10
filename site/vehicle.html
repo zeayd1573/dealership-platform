@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vehicle | MHL Motors</title>
-  <meta name="description" content="Used car for sale at MHL Motors, Kilbeggan.">
+  <title>Vehicle | M6 Motors</title>
+  <meta name="description" content="Used car for sale at M6 Motors, Ballinasloe.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="/img/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/img/favicon.png">
   <link rel="stylesheet" href="/css/site.css">
 </head>
@@ -89,6 +89,7 @@
 
   <footer class="site-footer"></footer>
 
+  <script src="/js/consent.js"></script>
   <script src="/js/site.js"></script>
   <script>
     (async () => {
@@ -123,7 +124,7 @@
 
       // Side card
       const saved = getSaved().includes(c.id);
-      const wa = `${dealer.whatsapp}?text=${encodeURIComponent(`Hi Michael, I'm interested in the ${c.name} (${fmt.eur(c.price)}) on your website.`)}`;
+      const wa = `${dealer.whatsapp}?text=${encodeURIComponent(`Hi, I'm interested in the ${c.name} (${fmt.eur(c.price)}) on your website.`)}`;
       $('vehicle-card').innerHTML = `
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
           <div><h1>${fmt.esc(c.name)}</h1><p class="variant">${fmt.esc(c.variant)}</p></div>
@@ -143,7 +144,7 @@
         <div class="vehicle-meta">
           <span>${ICONS.users} ${fmt.esc(c.owners)}</span>
           ${c.tax ? `<span>${ICONS.tag} Road tax ${fmt.esc(c.tax)}/yr</span>` : ''}
-          <span>${ICONS.pin} Kilbeggan, Co. Westmeath</span>
+          <span>${ICONS.pin} Ballinasloe, Co. Galway</span>
         </div>`;
       $('mobile-cta').innerHTML = `<a class="btn btn-primary" href="#enquiry">Enquire</a><a class="btn btn-whatsapp" href="${wa}" target="_blank" rel="noopener">${ICONS.whatsapp} WhatsApp</a><a class="btn btn-outline" href="${dealer.phoneHref}" aria-label="Call">${ICONS.phone}</a>`;
 

@@ -4,14 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Settings · Dealer admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
 <div class="app">
   <aside class="side"></aside>
   <main class="main" style="max-width:820px">
-    <div class="topbar"><div><h1>Settings</h1><p>Finance figures shown on the website, and your sign-in.</p></div></div>
+    <div class="topbar"><div><h1>Settings</h1><p>Enquiry alerts, finance figures shown on the website, and your sign-in.</p></div></div>
+
+    <form class="panel" id="notify-form">
+      <h2>Enquiry alerts</h2>
+      <p class="lead">Get an email the moment somebody fills in a form on the website. Replying to the email goes straight back to the customer.</p>
+      <div class="field full"><label class="check"><input type="checkbox" id="notify_on"> Email me when an enquiry comes in</label></div>
+      <div class="grid-2" style="margin-top:12px">
+        <div class="field"><label for="notify_to">Send alerts to</label><input class="input" id="notify_to" type="text" placeholder="sales@yourgarage.ie, owner@yourgarage.ie" autocomplete="off"><div class="hint">One address, or several separated by commas.</div></div>
+        <div class="field"><label for="notify_types">Which forms</label><select class="select" id="notify_types">
+          <option value="">Every form on the website</option>
+          <option value="enquiry,contact">Car enquiries and contact form only</option>
+          <option value="finance">Finance applications only</option>
+          <option value="enquiry,contact,finance">Enquiries, contact and finance</option>
+        </select></div>
+      </div>
+      <div class="field full" style="margin-top:12px"><label for="notify_from">Send from <span class="muted">(optional)</span></label><input class="input" id="notify_from" type="text" placeholder="MHL Motors &lt;enquiries@mhlmotors.ie&gt;" autocomplete="off"><div class="hint">Leave empty until the sending domain is verified. Ask your website provider.</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+        <button class="btn btn-primary" type="submit">Save alert settings</button>
+        <button class="btn btn-outline" type="button" id="test-email">Send me a test</button>
+      </div>
+      <p class="muted" id="notify-note" style="margin:12px 0 0"></p>
+    </form>
 
     <form class="panel" id="finance-form">
       <h2>Finance calculator</h2>
@@ -48,6 +69,45 @@
   (async () => {
     await renderShell('settings.html');
     const $ = id => document.getElementById(id);
+    // --- Enquiry alerts ---
+    const site = await api('/site');
+    $('notify_on').checked = site.notify_on === '1';
+    $('notify_to').value = site.notify_to || '';
+    $('notify_from').value = site.notify_from || '';
+    const types = site.notify_types || '';
+    if ([...$('notify_types').options].some(o => o.value === types)) $('notify_types').value = types;
+    const notifyNote = () => {
+      const on = $('notify_on').checked, to = $('notify_to').value.trim();
+      $('notify-note').textContent = !on ? 'Alerts are off. Enquiries still arrive in the inbox on this site.'
+        : !to ? 'Add an address above, otherwise nothing will be sent.'
+        : `Alerts will go to ${to}.`;
+    };
+    notifyNote();
+    $('notify_on').addEventListener('change', notifyNote);
+    $('notify_to').addEventListener('input', notifyNote);
+
+    $('notify-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        await api('/site', { method: 'PATCH', body: {
+          notify_on: $('notify_on').checked ? '1' : '0',
+          notify_to: $('notify_to').value.trim(),
+          notify_from: $('notify_from').value.trim(),
+          notify_types: $('notify_types').value
+        } });
+        toast('Alert settings saved'); notifyNote();
+      } catch (err) { toast(err.message, true); }
+    });
+
+    $('test-email').addEventListener('click', async () => {
+      const btn = $('test-email'); const to = $('notify_to').value.trim();
+      if (!to) return toast('Add an email address first', true);
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try { const r = await api('/site/test-email', { method: 'POST', body: { to } }); toast(`Test sent to ${r.sent_to.join(', ')}`); }
+      catch (err) { toast(err.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Send me a test'; }
+    });
+
     const s = await api('/finance');
     $('apr').value = s.apr; $('term').value = s.term_months; $('dep').value = s.deposit_pct;
     const example = () => { const p = 20000, loan = p * (1 - Number($('dep').value) / 100), r = Number($('apr').value) / 1200, n = Number($('term').value); const m = r ? loan * r / (1 - Math.pow(1 + r, -n)) : loan / n; $('example').textContent = `Example: a €20,000 car would show from €${Math.round(m * 12 / 52)}/week (€${Math.round(m)}/month).`; };

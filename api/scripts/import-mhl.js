@@ -15,7 +15,9 @@ const REGS = { 4478958: '151DL4069', 4542648: '151DL6094', 4327467: '171MN1685',
 const num = s => { const n = parseFloat(String(s ?? '').replace(/[^0-9.]/g, '')); return Number.isFinite(n) ? n : null; };
 const monthToIso = s => { const m = /^(\d{2})\/(\d{4})$/.exec(String(s || '')); return m ? `${m[2]}-${m[1]}-01` : null; };
 
-const user = process.env.ADMIN_USER || 'admin', pass = process.env.ADMIN_PASS || 'mhl-admin-2026';
+const user = process.env.ADMIN_USER || 'admin';
+const pass = process.env.ADMIN_PASS;
+if (!pass) { console.error('Set ADMIN_PASS in the environment, e.g.  ADMIN_PASS=... node ' + process.argv[1].split('/').pop()); process.exit(1); }
 const login = await (await fetch(`${BASE}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) })).json();
 if (!login.token) { console.error('login failed', login); process.exit(1); }
 const H = { Authorization: `Bearer ${login.token}` };

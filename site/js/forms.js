@@ -1,5 +1,5 @@
 /* =====================================================
-   MHL MOTORS — SHARED FORM PAGE LOGIC
+   M6 MOTORS — SHARED FORM PAGE LOGIC
    Multi-step forms with client-side validation. Submits to
    the platform API when available; otherwise shows success
    in demo mode.

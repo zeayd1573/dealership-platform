@@ -115,6 +115,15 @@ reg.get('/:plate', async c => {
   const nice = s => String(s || '').trim().split(/\s+/).map(w => KEEP.has(w.toUpperCase()) ? w.toUpperCase() : /^[A-Z0-9-]+$/.test(w) && w.length > 1 ? w[0] + w.slice(1).toLowerCase() : w).join(' ');
   const litres = s => { const n = parseInt(String(s || '').replace(/[^0-9]/g, ''), 10); return n >= 500 ? (n / 1000).toFixed(1) + 'L' : String(s || '').trim(); }; // "1685" / "1968cc" -> "1.7L" / "2.0L"
   const num = s => { const n = parseInt(s, 10); return n > 0 ? String(n) : ''; };
+  // RegCheck returns a Transmission field but leaves it empty on Irish plates.
+  // The gearbox is almost always spelled out in the description, e.g.
+  // "... 2.0 TDI 122 S-TRONIC SE 4DR AUTO" — read it from there instead.
+  const gearbox = text => {
+    const t = ' ' + String(text || '').toUpperCase() + ' ';
+    if (/\b(AUTO|AUTOMATIC|DSG|S[- ]?TRONIC|TIPTRONIC|STEPTRONIC|CVT|E[- ]?CVT|MULTITRONIC|PDK|DCT|EDC|POWERSHIFT|G[- ]?TRONIC|[79]G[- ]?TRONIC)\b/.test(t)) return 'Automatic';
+    if (/\bMANUAL\b/.test(t)) return 'Manual';
+    return '';
+  };
   const out = {
     mock: false, country, plate,
     make: nice(tv(vehicle.CarMake) || xmlTextVal(xml, 'CarMake') || xmlVal(xml, 'MakeDescription')),
@@ -124,7 +133,7 @@ reg.get('/:plate', async c => {
     fuel_type: nice(tv(vehicle.FuelType) || xmlTextVal(xml, 'FuelType')),
     engine_size: litres(tv(vehicle.EngineSize) || xmlTextVal(xml, 'EngineSize')),
     body_style: nice(tv(vehicle.BodyStyle) || xmlTextVal(xml, 'BodyStyle')),
-    transmission: nice(tv(vehicle.Transmission) || xmlTextVal(xml, 'Transmission')),
+    transmission: nice(tv(vehicle.Transmission) || xmlTextVal(xml, 'Transmission')) || gearbox(tv(vehicle.Description) || xmlVal(xml, 'Description')),
     doors: num(tv(vehicle.NumberOfDoors) || xmlTextVal(xml, 'NumberOfDoors')),
     seats: num(tv(vehicle.NumberOfSeats) || xmlTextVal(xml, 'NumberOfSeats')),
     variant: (tv(vehicle.Description) || xmlVal(xml, 'Description')).trim(),

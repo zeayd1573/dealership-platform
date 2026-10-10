@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Contact | MHL Motors, Kilbeggan, Co. Westmeath</title>
-  <meta name="description" content="Contact MHL Motors on the Moate Road, Kilbeggan. Call, WhatsApp, email or drop in Monday to Saturday.">
+  <title>Contact | M6 Motors, Ballinasloe, Co. Galway</title>
+  <meta name="description" content="Contact M6 Motors on the Athlone Road, Ballinasloe. Call, WhatsApp, email or drop in Monday to Saturday.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="/img/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/img/favicon.png">
   <link rel="stylesheet" href="/css/site.css">
 </head>
@@ -22,7 +22,7 @@
   <div class="wrap form-layout">
     <div>
       <div class="info-card" id="visit-card"></div>
-      <div class="visit-map" style="margin-top:20px"><iframe title="Map to MHL Motors" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=53.3701254,-7.508884&z=14&output=embed"></iframe></div>
+      <div class="visit-map" style="margin-top:20px"><iframe title="Map to M6 Motors" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=53.3701254,-7.508884&z=14&output=embed"></iframe></div>
     </div>
 
     <form class="panel" id="contact-form" novalidate>
@@ -32,7 +32,7 @@
         <div class="field"><label for="c-phone">Phone</label><input class="input" id="c-phone" name="phone" type="tel" required autocomplete="tel"></div>
         <div class="field full"><label for="c-email">Email</label><input class="input" id="c-email" name="email" type="email" required autocomplete="email"></div>
         <div class="field full"><label for="c-msg">How can we help?</label><textarea class="input" id="c-msg" name="message" required></textarea></div>
-        <div class="field full"><label class="check"><input type="checkbox" name="consent" required> I agree to MHL Motors storing my details to respond to this enquiry.</label></div>
+        <div class="field full"><label class="check"><input type="checkbox" name="consent" required> I agree to M6 Motors storing my details to respond to this enquiry.</label></div>
         <div class="full form-actions-row form-actions"><button class="btn btn-primary" type="submit">Send message</button></div>
       </div>
       <div class="form-msg"></div>
@@ -41,6 +41,7 @@
 
   <footer class="site-footer"></footer>
 
+  <script src="/js/consent.js"></script>
   <script src="/js/site.js"></script>
   <script src="/js/forms.js"></script>
   <script>
@@ -48,7 +49,7 @@
       const { dealer } = await loadStock();
       renderChrome(dealer, '/contact');
       document.getElementById('visit-card').innerHTML = `
-        <h3>MHL Motors</h3>
+        <h3>M6 Motors</h3>
         <div class="info-row">${ICONS.pin}<div><strong>Address</strong>${dealer.address}</div></div>
         <div class="info-row">${ICONS.phone}<div><strong>Phone</strong><a href="${dealer.phoneHref}">${dealer.phone}</a></div></div>
         <div class="info-row">${ICONS.mail}<div><strong>Email</strong><a href="mailto:${dealer.email}">${dealer.email}</a></div></div>

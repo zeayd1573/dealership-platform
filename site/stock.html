@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Used Cars for Sale | MHL Motors, Kilbeggan</title>
-  <meta name="description" content="Browse all used cars, SUVs and vans for sale at MHL Motors, Kilbeggan, Co. Westmeath. Filter by make, price, fuel and more.">
+  <title>Used Cars for Sale | M6 Motors, Ballinasloe</title>
+  <meta name="description" content="Browse all used cars, SUVs and vans for sale at M6 Motors, Ballinasloe, Co. Galway. Filter by make, price, fuel and more.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="/img/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/img/favicon.png">
   <link rel="stylesheet" href="/css/site.css">
 </head>
@@ -73,6 +73,7 @@
 
   <footer class="site-footer"></footer>
 
+  <script src="/js/consent.js"></script>
   <script src="/js/site.js"></script>
   <script>
     (async () => {
@@ -81,7 +82,8 @@
 
       const $ = id => document.getElementById(id);
       const params = new URLSearchParams(location.search);
-      const state = { make: params.get('make') || '', max: Number(params.get('max')) || 50000, body: new Set(), fuel: new Set(), trans: new Set(), year: '', saved: params.get('saved') === '1', sort: 'newest' };
+      // max starts at 0, meaning "no cap chosen yet"; it is set from the real stock below.
+      const state = { make: params.get('make') || '', max: Number(params.get('max')) || 0, body: new Set(), fuel: new Set(), trans: new Set(), year: '', saved: params.get('saved') === '1', sort: 'newest' };
       if (params.get('body')) state.body.add(params.get('body'));
       if (params.get('fuel')) state.fuel.add(params.get('fuel'));
 
@@ -97,7 +99,7 @@
       };
       checks('f-body', 'body', state.body); checks('f-fuel', 'fuel', state.fuel); checks('f-trans', 'trans', state.trans);
       const maxPrice = Math.ceil(Math.max(...cars.map(c => c.price)) / 5000) * 5000;
-      $('f-max').max = maxPrice; $('f-max').value = Math.min(state.max, maxPrice); state.max = Number($('f-max').value);
+      $('f-max').max = maxPrice; $('f-max').value = state.max ? Math.min(state.max, maxPrice) : maxPrice; state.max = Number($('f-max').value); $('f-max-out').textContent = fmt.eur(state.max);
       [...new Set(cars.map(c => c.year))].sort((a, b) => b - a).forEach(y => $('f-year').add(new Option(y, y)));
       $('f-saved').checked = state.saved;
 

@@ -5,10 +5,16 @@ export const VEHICLE_FIELDS = [
   'body_style', 'transmission', 'mileage', 'price', 'prev_price', 'description', 'features', 'status',
   'nct_expiry', 'tax_due', 'vin', 'youtube_link', 'is_highlighted', 'is_commercial', 'doors', 'seats',
   'owners', 'co2', 'max_power', 'fuel_economy', 'seat_belts', 'road_tax', 'warranty_type',
-  'warranty_duration', 'external_ref', 'sold_overlay', 'watermark_position'
+  'warranty_duration', 'external_ref', 'sold_overlay', 'watermark_position',
+  'reserve_cost', 'private_notes', 'finance_mode', 'finance_apr', 'finance_term_months',
+  'finance_deposit_pct', 'berth', 'payload', 'licence_type', 'engine_hours'
 ];
-const INT_FIELDS = new Set(['year', 'mileage', 'doors', 'seats', 'owners', 'co2', 'max_power', 'seat_belts', 'is_highlighted', 'is_commercial', 'sold_overlay']);
-const NUM_FIELDS = new Set(['price', 'prev_price', 'road_tax']);
+
+/** Columns the public site must never see. */
+export const PRIVATE_VEHICLE_FIELDS = ['private_notes', 'vin', 'prev_price', 'external_ref', 'dealer_id', 'view_count'];
+const INT_FIELDS = new Set(['year', 'mileage', 'doors', 'seats', 'owners', 'co2', 'max_power', 'seat_belts', 'is_highlighted', 'is_commercial', 'sold_overlay', 'finance_term_months', 'berth', 'engine_hours']);
+const NUM_FIELDS = new Set(['price', 'prev_price', 'road_tax', 'reserve_cost', 'finance_apr', 'finance_deposit_pct']);
+export const FINANCE_MODES = ['default', 'none', 'custom'];
 export const STATUSES = new Set(['available', 'paused', 'reserved', 'sold', 'archived']);
 
 /** Pick and coerce allowed vehicle fields from a request body. */
@@ -30,6 +36,7 @@ export function pickVehicleFields(body, { forCreate = false } = {}) {
   }
   if (out.status && !STATUSES.has(out.status)) delete out.status;
   if ('watermark_position' in out && out.watermark_position !== null && !['off', 'tl', 'tc', 'tr', 'c', 'bl', 'bc', 'br'].includes(out.watermark_position)) out.watermark_position = null;
+  if ('finance_mode' in out && out.finance_mode !== null && !FINANCE_MODES.includes(out.finance_mode)) out.finance_mode = null;
   if (forCreate && !out.status) out.status = 'available';
   return out;
 }
@@ -56,6 +63,20 @@ export function repayment(price, settings) {
   return { monthly: Math.round(monthly), weekly: Math.round(monthly * 12 / 52) };
 }
 
+/**
+ * Finance terms for one vehicle: the dealer's site settings unless this car overrides them.
+ * Returns null when finance is switched off for the car, so no repayment is shown at all.
+ */
+export function vehicleFinance(row, settings) {
+  if (row.finance_mode === 'none') return null;
+  if (row.finance_mode !== 'custom') return settings;
+  return {
+    apr: row.finance_apr ?? settings?.apr,
+    term_months: row.finance_term_months ?? settings?.term_months,
+    deposit_pct: row.finance_deposit_pct ?? settings?.deposit_pct
+  };
+}
+
 /** Vehicle row -> API object (booleans, image urls, finance). */
 export function shapeVehicle(env, row, settings) {
   if (!row) return null;
@@ -63,7 +84,8 @@ export function shapeVehicle(env, row, settings) {
   v.is_highlighted = !!v.is_highlighted; v.is_commercial = !!v.is_commercial; v.sold_overlay = !!v.sold_overlay;
   const sold = v.sold_overlay || v.status === 'sold';
   if ('primary_key' in v) { v.primary_image = imageUrl(env, v.primary_key, { sold }); v.primary_thumb = imageUrl(env, v.primary_thumb_key, { sold }); delete v.primary_key; delete v.primary_thumb_key; }
-  if (settings) Object.assign(v, repayment(v.price, settings));
+  const terms = settings ? vehicleFinance(v, settings) : null;
+  Object.assign(v, terms ? repayment(v.price, terms) : { monthly: null, weekly: null });
   return v;
 }
 
@@ -79,7 +101,7 @@ export async function getSettings(env, dealerId) {
 }
 
 export async function getDefaultDealer(env) {
-  return env.DB.prepare('SELECT * FROM dealers WHERE slug = ?').bind(env.DEFAULT_DEALER_SLUG || 'mhlmotors').first();
+  return env.DB.prepare('SELECT * FROM dealers WHERE slug = ?').bind(env.DEFAULT_DEALER_SLUG || 'm6motors').first();
 }
 
 export const isSold = v => !!(v && (v.sold_overlay || v.status === 'sold'));

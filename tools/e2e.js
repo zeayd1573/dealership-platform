@@ -29,7 +29,7 @@ const OUT = '/tmp/mhl-shots';
 
   // Admin (new design): login, stock cards, status change, enquiries inbox, edit page, settings, guard
   await go('http://localhost:3100/login.html', '#login-form');
-  await page.type('#username', 'admin'); await page.type('#password', 'mhl-admin-2026');
+  await page.type('#username', process.env.ADMIN_USER || 'admin'); await page.type('#password', process.env.ADMIN_PASS || '');
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('#login-form button')]);
   out.admin_url = page.url();
   await page.waitForSelector('.cards .card', { timeout: 10000 });

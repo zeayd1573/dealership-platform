@@ -2,35 +2,42 @@
 import { imageUrl } from './util.js';
 
 export const SITE_DEFAULTS = {
-  site_title: 'MHL Motors | Used Cars for Sale in Kilbeggan, Moate & Co. Westmeath | Car Finance',
-  site_description: 'MHL Motors stocks quality used cars, SUVs and vans in Kilbeggan, Co. Westmeath, near Moate and Tullamore. Used car finance arranged, trade-ins welcome. Browse our stock online or call in.',
-  hero_kicker: 'Used cars · Kilbeggan, Co. Westmeath',
-  hero_title: 'Honest cars, *straight* prices.',
-  hero_lede: "Family-run car sales on the Moate Road. Every car is history-checked and NCT'd before it goes on the forecourt. Finance arranged, trade-ins welcome, and you'll always deal with the owner.",
+  site_title: 'M6 Motors | Used Cars, Ballinasloe, Co. Galway',
+  site_description: 'M6 Motors stocks quality used cars, SUVs and commercials on the Athlone Road in Ballinasloe, Co. Galway. Every car photographed in detail, finance arranged, trade-ins welcome.',
+  hero_kicker: 'Used cars \u00b7 Ballinasloe, Co. Galway',
+  hero_title: 'Unbeatable quality, prices and service',
+  hero_lede: 'A name you can trust.',
   hero_tag_label: 'On the forecourt',
-  hero_tag_value: '2017 Audi SQ7',
-  hero_image_key: '',            // R2 key; empty = built-in /img/hero-forecourt.jpg
+  hero_tag_value: '2019 BMW X5 M Sport',
+  hero_image_key: '',            // R2 key; empty = built-in /img/hero-x5.jpg
   trust: JSON.stringify([
-    ['History checked', 'Every car is checked before it goes on sale.'],
-    ['Finance arranged', 'Competitive rates, quick decisions, from 0% deposit.'],
-    ['Trade-ins welcome', "Bring your old car and we'll give you a fair price."],
-    ['Car sourcing', "Can't see it here? We'll find it in Ireland or the UK."]
+    ['Seen before you travel', 'Twenty-plus photographs of every car, taken here, not stock images.'],
+    ['Finance arranged', 'First Citizen, Bluestone and Alphera. Quick decisions, competitive rates.'],
+    ['Trade-ins welcome', 'Bring the old car and we will price it honestly against the new one.'],
+    ['Off the M6', 'Five minutes from the motorway at Ballinasloe. Easy run from Galway or Athlone.']
   ]),
-  about_kicker: 'About MHL Motors',
-  about_title: 'A small garage that does things properly.',
-  about_text: 'MHL Motors is run by Michael and a small team on the Moate Road in Kilbeggan. We keep a mixed range of quality cars, SUVs and vans, price them fairly and sell them straight, without the pressure.',
-  about_points: 'Mixed stock from first cars to seven-seaters and commercials\nFinance arranged in-house with fast approval\nFair trade-in valuations and cash purchases\nCall, WhatsApp or drop in six days a week',
+  about_kicker: 'About M6 Motors',
+  about_title: 'A Galway garage that shows you the whole car.',
+  about_text: 'M6 Motors sells quality used cars from Dolan\u2019s Service Station on the Athlone Road in Ballinasloe. We keep a mixed range, mostly German and premium, and we photograph every one of them in detail before it goes up.',
+  about_points: 'Premium and family stock, from hatchbacks to seven-seat SUVs\nFinance arranged through First Citizen, Bluestone and Alphera\nFair trade-in prices against anything on the forecourt\nSales, service and aftersales all on the one site',
   about_image_key: '',
-  analytics_id: '',           // e.g. G-4NWJPS42KT — GA4 tag, empty = off
+  footer_blurb: 'Quality used cars on the Athlone Road in Ballinasloe, Co. Galway. Every car photographed in detail, finance arranged and trade-ins welcome.',
+  analytics_id: '',           // e.g. G-4NWJPS42KT — GA4 tag, empty = off. Loaded only after cookie consent.
   watermark_on: '0',          // '1' = bake the logo into served car photos
-  watermark_position: 'tl',   // tl | tr | bl | br
+  watermark_position: 'tl',   // tl | tc | tr | c | bl | bc | br
   watermark_scope: 'main',    // main = main photo only | all
   watermark_opacity: '0.9',
   watermark_key: '',          // R2 key of a custom watermark PNG; empty = built-in /img/watermark.png
   sold_stamp_on: '1',         // '1' = sold cars get the SOLD ribbon baked in
   photo_version: '1',         // bumped whenever branding changes so photo URLs change and caches refresh
-  footer_blurb: 'Family-run used car sales in Kilbeggan, Co. Westmeath. Quality cars, honest prices, finance arranged and trade-ins welcome.'
+  notify_on: '0',             // '1' = email the dealer when an enquiry comes in. OFF until switched on.
+  notify_to: '',              // who gets them; comma separated. No address means nothing is sent.
+  notify_from: '',            // verified sender, e.g. "MHL Motors <enquiries@mhlmotors.ie>". Empty = provider test sender.
+  notify_types: ''            // comma separated enquiry types, empty = all of them
 };
+
+/** Settings the public site must never receive. */
+export const PRIVATE_SITE_KEYS = ['hero_image_key', 'about_image_key', 'watermark_key', 'notify_on', 'notify_to', 'notify_from', 'notify_types'];
 export const SITE_KEYS = Object.keys(SITE_DEFAULTS);
 
 /** Merged settings for a dealer, with image URLs resolved. */
@@ -49,8 +56,8 @@ export async function getSite(env, dealerId) {
     trust,
     about_points: String(s.about_points || '').split('\n').map(x => x.trim()).filter(Boolean),
     watermark_image: s.watermark_key ? imageUrl(env, s.watermark_key) : '/img/watermark.png',
-    hero_image: s.hero_image_key ? imageUrl(env, s.hero_image_key) : '/img/hero-forecourt.jpg',
-    about_image: s.about_image_key ? imageUrl(env, s.about_image_key) : '/img/about-forecourt.jpg'
+    hero_image: s.hero_image_key ? imageUrl(env, s.hero_image_key) : '/img/slide-1.jpg',
+    about_image: s.about_image_key ? imageUrl(env, s.about_image_key) : '/img/about-gle.jpg'
   };
 }
 

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Windscreen card · Dealer admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink:#141414; --muted:#5b5b5b; --line:#d8d8d8; --accent:#1d3fbf; --paper:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#eceef2; font-family:'Public Sans',system-ui,sans-serif; color:var(--ink); }
+
+    .bar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+           padding:12px 16px; background:#fff; border-bottom:1px solid var(--line); }
+    .bar h1 { font:600 16px/1.2 'Public Sans',sans-serif; margin:0 auto 0 0; }
+    .btn { appearance:none; border:1px solid var(--line); background:#fff; color:var(--ink); font:600 14px/1 'Public Sans',sans-serif;
+           padding:10px 14px; border-radius:8px; cursor:pointer; }
+    .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .bar label { font:500 14px/1 'Public Sans',sans-serif; display:inline-flex; gap:6px; align-items:center; color:var(--muted); }
+
+    .sheet { width:210mm; min-height:297mm; margin:18px auto; padding:16mm 14mm; background:var(--paper);
+             box-shadow:0 2px 18px rgba(0,0,0,.14); display:flex; flex-direction:column; }
+    .brand { display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:3px solid var(--ink); padding-bottom:10px; }
+    .brand img { height:17mm; width:auto; max-width:95mm; object-fit:contain; }
+    .brand .who { flex:0 0 58mm; text-align:right; font:500 10.5pt/1.4 'Public Sans',sans-serif; color:var(--muted); }
+
+    h2.title { font:800 30pt/1.05 'Barlow Semi Condensed',sans-serif; text-transform:uppercase; margin:10mm 0 2mm; letter-spacing:.2pt; }
+    .variant { font:500 14pt/1.3 'Public Sans',sans-serif; color:var(--muted); margin:0 0 6mm; }
+
+    .price-row { display:flex; align-items:baseline; gap:8mm; flex-wrap:wrap; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:5mm 0; }
+    .price { font:800 44pt/1 'Barlow Semi Condensed',sans-serif; color:var(--accent); }
+    .was { font:500 16pt/1 'Public Sans',sans-serif; color:var(--muted); text-decoration:line-through; }
+    .finance { font:600 14pt/1.3 'Public Sans',sans-serif; }
+    .finance span { color:var(--muted); font-weight:500; }
+
+    .specs { display:grid; grid-template-columns:repeat(3,1fr); gap:4mm 6mm; margin:7mm 0 0; }
+    .spec { border-bottom:1px solid var(--line); padding-bottom:2mm; }
+    .spec dt { font:600 9pt/1 'Public Sans',sans-serif; letter-spacing:.6pt; text-transform:uppercase; color:var(--muted); margin:0 0 1.5mm; }
+    .spec dd { font:700 15pt/1 'Barlow Semi Condensed',sans-serif; margin:0; }
+
+    .features { margin:7mm 0 0; }
+    .features h3 { font:600 10pt/1 'Public Sans',sans-serif; letter-spacing:.6pt; text-transform:uppercase; color:var(--muted); margin:0 0 3mm; }
+    .features ul { columns:3; column-gap:6mm; margin:0; padding:0 0 0 4mm; }
+    .features li { font:500 11pt/1.55 'Public Sans',sans-serif; break-inside:avoid; }
+
+    .foot { margin-top:auto; padding-top:6mm; border-top:3px solid var(--ink); display:flex; justify-content:space-between; gap:8mm; align-items:flex-end; }
+    .foot .call { font:800 20pt/1.1 'Barlow Semi Condensed',sans-serif; }
+    .foot .call span { display:block; font:500 10pt/1.3 'Public Sans',sans-serif; color:var(--muted); text-transform:uppercase; letter-spacing:.6pt; }
+    .warn { font:500 7.5pt/1.35 'Public Sans',sans-serif; color:var(--muted); max-width:105mm; text-align:right; }
+    .status-flag { display:inline-block; font:700 12pt/1 'Barlow Semi Condensed',sans-serif; text-transform:uppercase;
+                   background:var(--ink); color:#fff; padding:2.5mm 4mm; border-radius:3px; margin-left:4mm; vertical-align:middle; }
+    .msg { padding:40px 16px; text-align:center; color:var(--muted); font:500 15px/1.5 'Public Sans',sans-serif; }
+
+    @media print {
+      body { background:#fff; }
+      .bar { display:none; }
+      .sheet { width:auto; min-height:auto; margin:0; padding:10mm 8mm; box-shadow:none; }
+      @page { size:A4 portrait; margin:8mm; }
+    }
+  </style>
+</head>
+<body>
+<div class="bar">
+  <h1 id="bar-title">Windscreen card</h1>
+  <label><input type="checkbox" id="opt-finance" checked> Show finance</label>
+  <label><input type="checkbox" id="opt-features" checked> Show features</label>
+  <label><input type="checkbox" id="opt-reg"> Show reg</label>
+  <button class="btn" onclick="history.back()">Back</button>
+  <button class="btn primary" onclick="window.print()">Print</button>
+</div>
+
+<div id="out"><p class="msg">Loading…</p></div>
+
+<script src="js/admin.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const out = document.getElementById('out');
+  // esc() comes from js/admin.js. Its eur() prints an em dash when empty, so use our own name here.
+  const money = n => n == null || n === '' ? null : '€' + Number(n).toLocaleString('en-IE');
+  const monthYear = iso => { const m = /^(\d{4})-(\d{2})/.exec(iso || ''); return m ? `${m[2]}/${m[1]}` : null; };
+  let car = null, dealer = null;
+
+  // Only the specs that mean something to somebody standing in the forecourt.
+  function specList(v) {
+    const rows = [
+      ['Year', v.year],
+      ['Mileage', v.mileage != null ? Number(v.mileage).toLocaleString('en-IE') + ' km' : null],
+      ['Fuel', v.fuel_type],
+      ['Transmission', v.transmission],
+      ['Engine', v.engine_size ? (/l$/i.test(String(v.engine_size)) ? v.engine_size : v.engine_size + 'L') : null],
+      ['Body', v.body_style],
+      ['Colour', v.colour],
+      ['Owners', v.owners],
+      ['NCT until', monthYear(v.nct_expiry)],
+      ['Road tax', v.road_tax != null ? money(v.road_tax) + '/yr' : null],
+      ['CO2', v.co2 != null ? v.co2 + ' g/km' : null],
+      ['Warranty', v.warranty_duration || v.warranty_type]
+    ].filter(([, val]) => val !== null && val !== undefined && val !== '');
+    if (document.getElementById('opt-reg').checked && v.reg) rows.unshift(['Reg', v.reg]);
+    return rows.slice(0, 9);
+  }
+
+  function render() {
+    if (!car) return;
+    const v = car, d = dealer || {};
+    const name = [v.year, v.make, v.model].filter(Boolean).join(' ') || v.reg || 'Vehicle';
+    const price = money(v.price) || 'POA';
+    const showFinance = document.getElementById('opt-finance').checked && v.monthly;
+    const showFeatures = document.getElementById('opt-features').checked;
+    const feats = String(v.features || '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 18);
+    const flag = v.status === 'sold' ? 'Sold' : v.status === 'reserved' ? 'Reserved' : '';
+    const logo = (window.API_BASE || '') + '/img/mhl-logo.png';
+
+    out.innerHTML = `
+      <div class="sheet">
+        <div class="brand">
+          <img src="${logo}" alt="${esc(d.name || '')}" onerror="this.remove()">
+          <div class="who">
+            <strong>${esc(d.name || '')}</strong><br>
+            ${esc(d.address || '')}
+          </div>
+        </div>
+
+        <h2 class="title">${esc(name)}${flag ? `<span class="status-flag">${flag}</span>` : ''}</h2>
+        ${v.variant ? `<p class="variant">${esc(v.variant)}</p>` : ''}
+
+        <div class="price-row">
+          <div class="price">${esc(price)}</div>
+          ${v.prev_price && v.prev_price > v.price ? `<div class="was">${esc(money(v.prev_price))}</div>` : ''}
+          ${showFinance ? `<div class="finance">€${v.weekly}<span> per week</span> &nbsp;·&nbsp; €${v.monthly}<span> per month</span></div>` : ''}
+        </div>
+
+        <dl class="specs">
+          ${specList(v).map(([k, val]) => `<div class="spec"><dt>${esc(k)}</dt><dd>${esc(val)}</dd></div>`).join('')}
+        </dl>
+
+        ${showFeatures && feats.length ? `<div class="features"><h3>Specification</h3><ul>${feats.map(f => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}
+
+        <div class="foot">
+          <div class="call"><span>Talk to us</span>${esc(d.phone || '')}</div>
+          <p class="warn">${showFinance
+            ? 'Finance figures are illustrative, subject to lender approval and are not an offer of credit. WARNING: If you do not meet the repayments on your credit agreement, your account will go into arrears. This may affect your credit rating, which may limit your ability to access credit in the future.'
+            : 'Every effort is made to ensure these details are accurate. Please confirm anything that affects your decision to purchase.'}</p>
+        </div>
+      </div>`;
+  }
+
+  (async () => {
+    if (!id) { out.innerHTML = '<p class="msg">No car selected.</p>'; return; }
+    try {
+      const [v, d] = await Promise.all([api('/vehicles/' + id), api('/public/dealer')]);
+      car = v; dealer = d;
+      document.getElementById('bar-title').textContent = 'Windscreen card · ' + [v.year, v.make, v.model].filter(Boolean).join(' ');
+      document.title = document.getElementById('bar-title').textContent;
+      render();
+    } catch (err) {
+      out.innerHTML = `<p class="msg">Could not load that car. ${esc(err.message || '')}</p>`;
+    }
+  })();
+
+  for (const el of document.querySelectorAll('.bar input[type=checkbox]')) el.addEventListener('change', render);
+</script>
+</body>
+</html>

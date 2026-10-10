@@ -38,7 +38,7 @@ export function carCard(v) {
         <div class="spec-chips">${chips.map(s => `<span>${esc(s)}</span>`).join('')}</div>
         <div class="car-card-price">
           <div class="price">${eur(v.price)}</div>
-          ${v.weekly ? `<div class="per-week">from <strong>€${v.weekly}</strong>/week</div>` : ''}
+          ${v.monthly ? `<div class="per-week"><span>Monthly</span><strong>€${v.monthly}</strong></div>` : ''}
         </div>
       </div>
     </article>`;
@@ -98,18 +98,18 @@ export function stockPage(html, list) {
 /** Fill the featured grid and the "N cars" count in index.html. */
 export function homePage(html, list, total) {
   return html
-    .replace('<span id="hero-count">cars</span>', `<span id="hero-count">${total} cars</span>`)
+    .replace('<span id="hero-count">cars</span>', `<span id="hero-count">${total}\u00a0cars</span>`)
     .replace('<div class="car-grid" id="featured"></div>', `<div class="car-grid" id="featured">${carGrid(list)}</div>`);
 }
 
 /** Header + footer markup, mirroring renderChrome() in site/js/site.js, so nav links exist without JS. */
 export function chrome(html, dealer, site, activePath) {
-  const links = [['/', 'Home'], ['/stock', 'Used Cars'], ['/finance', 'Finance'], ['/sell-your-car', 'Sell Your Car'], ['/contact', 'Contact']];
+  const links = [['/', 'Home'], ['/stock', 'Used Cars'], ['/finance', 'Finance'], ['/sell-your-car', 'Sell Your Car'], ['/about', 'About'], ['/contact', 'Contact']];
   const nav = links.map(([h, t]) => `<a href="${h}" ${activePath === h ? 'aria-current="page"' : ''}>${t}</a>`).join('');
   const hours = JSON.parse(dealer.hours_json || '[]');
   const header = `<header class="site-header">
     <div class="wrap">
-      <a class="brand" href="/" aria-label="${esc(dealer.name)} home"><img src="/img/mhl-logo.png" alt="${esc(dealer.name)}" width="550" height="99"></a>
+      <a class="brand" href="/" aria-label="${esc(dealer.name)} home"><img src="/img/m6-logo.png" alt="${esc(dealer.name)}" width="550" height="99"></a>
       <nav class="nav" aria-label="Main">${nav}</nav>
       <div class="header-actions">
         <a class="header-phone" href="${esc(dealer.phone_href || '')}">${ICON.phone}<span>${esc(dealer.phone || '')}</span></a>
@@ -120,11 +120,11 @@ export function chrome(html, dealer, site, activePath) {
     <nav class="mobile-nav" aria-label="Mobile">${nav}</nav></header>`;
   const footer = `<footer class="site-footer">
     <div class="wrap">
-      <div><div class="brand"><img src="/img/mhl-logo.png" alt="${esc(dealer.name)}" width="550" height="99"></div><p>${esc(site.footer_blurb || '')}</p></div>
-      <div><h4>Explore</h4><ul>${links.map(([h, t]) => `<li><a href="${h}">${t}</a></li>`).join('')}<li><a href="/car-sourcing">Car Sourcing</a></li></ul></div>
+      <div><div class="brand"><img src="/img/m6-logo.png" alt="${esc(dealer.name)}" width="550" height="99"></div><p>${esc(site.footer_blurb || '')}</p></div>
+      <div><h4>Explore</h4><ul>${links.map(([h, t]) => `<li><a href="${h}">${t}</a></li>`).join('')}<li><a href="/car-sourcing">Car Sourcing</a></li><li><a href="/about">About Us</a></li><li><a href="/reviews">Reviews</a></li></ul></div>
       <div><h4>Opening hours</h4><ul>${hours.map(([d, h]) => `<li>${esc(d)}: ${esc(h)}</li>`).join('')}</ul></div>
       <div><h4>Contact</h4><ul><li><a href="${esc(dealer.phone_href || '')}">${esc(dealer.phone || '')}</a></li><li><a href="mailto:${esc(dealer.email || '')}">${esc(dealer.email || '')}</a></li><li><a href="${esc(dealer.maps_url || '')}" target="_blank" rel="noopener">${esc(dealer.address || '')}</a></li></ul></div>
     </div>
-    <div class="footer-bottom"><div class="wrap"><span>&copy; ${new Date().getFullYear()} ${esc(dealer.name)} Ltd. All rights reserved.</span><span>Privacy &middot; Terms</span></div></div></footer>`;
+    <div class="footer-bottom"><div class="wrap"><span>&copy; ${new Date().getFullYear()} ${esc(dealer.name)} Ltd. All rights reserved.</span><span><a href="/privacy">Privacy &amp; cookies</a> &middot; <a href="#" data-cookie-settings>Cookie settings</a></span></div></div></footer>`;
   return html.replace('<header class="site-header"></header>', header).replace('<footer class="site-footer"></footer>', footer);
 }

@@ -14,3 +14,9 @@ tools/mhl-stock/photos/
 # OS / editor
 .DS_Store
 server.log
+
+# scraped M6 photos (27 MB) — live copies are in R2
+tools/m6-stock/photos/
+
+# local Claude/MCP config
+.mcp.json

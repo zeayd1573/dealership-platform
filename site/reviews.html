@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Customer Reviews | M6 Motors, Ballinasloe</title>
+  <meta name="description" content="What customers say about buying a car from M6 Motors in Ballinasloe, Co. Galway. Read reviews and leave your own.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/img/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/img/favicon.png">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <div class="wrap">
+    <div class="page-head">
+      <p class="crumbs"><a href="/">Home</a> <span>/</span> <span>Reviews</span></p>
+      <h1>What our customers say</h1>
+      <p class="lede-dark" id="review-summary">Reviews from people who have bought a car here.</p>
+    </div>
+  </div>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="review-grid" id="reviews"></div>
+      <p class="empty" id="reviews-empty" hidden>No reviews yet.</p>
+    </div>
+  </section>
+
+  <section class="section band">
+    <div class="wrap">
+      <div class="section-head centred"><h2>Bought a car from us?</h2></div>
+      <div class="finder-card" style="max-width:640px;margin-inline:auto;text-align:left">
+        <form id="review-form" class="form-grid">
+          <div class="field"><label for="customer_name">Your name</label><input class="input" id="customer_name" name="customer_name" required></div>
+          <div class="field"><label for="rating">Rating</label><select class="select" id="rating" name="rating">
+            <option value="5">5 — Excellent</option><option value="4">4 — Good</option><option value="3">3 — OK</option>
+            <option value="2">2 — Poor</option><option value="1">1 — Bad</option>
+          </select></div>
+          <div class="field full"><label for="review_text">Your review</label><textarea class="input" id="review_text" name="review_text" rows="5" required placeholder="How did it go? What did you buy?"></textarea></div>
+          <div class="full"><button class="btn btn-dark" type="submit" id="review-submit">Leave a review</button></div>
+          <p class="form-msg full" id="review-msg"></p>
+        </form>
+        <p class="muted" style="margin:14px 0 0;font-size:.86rem">Reviews are read before they go on the site.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/js/consent.js"></script>
+  <script src="/js/site.js"></script>
+  <script>
+    (async () => {
+      const { dealer } = await loadStock();
+      renderChrome(dealer, '/reviews');
+      const $ = id => document.getElementById(id);
+
+      let reviews = [];
+      try { reviews = await (await fetch(API + '/public/reviews')).json(); } catch {}
+      if (Array.isArray(reviews) && reviews.length) {
+        const avg = (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1);
+        $('review-summary').textContent = `${avg} out of 5 from ${reviews.length} review${reviews.length === 1 ? '' : 's'}.`;
+        $('reviews').innerHTML = reviews.map(r => `
+          <figure class="review">
+            <div class="stars" aria-label="${r.rating} out of 5">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+            <blockquote>${fmt.esc(r.review_text)}</blockquote>
+            <figcaption>${fmt.esc(r.customer_name)}</figcaption>
+          </figure>`).join('');
+      } else {
+        $('reviews-empty').hidden = false;
+      }
+
+      $('review-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const btn = $('review-submit'), msg = $('review-msg');
+        btn.disabled = true; btn.textContent = 'Sending…';
+        try {
+          const res = await fetch(API + '/reviews', {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              customer_name: $('customer_name').value.trim(),
+              rating: Number($('rating').value),
+              review_text: $('review_text').value.trim()
+            })
+          });
+          if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Could not send that');
+          msg.className = 'form-msg ok full'; msg.textContent = 'Thanks. We will put it up once we have read it.';
+          e.target.reset();
+        } catch (err) {
+          msg.className = 'form-msg err full'; msg.textContent = err.message;
+        }
+        btn.disabled = false; btn.textContent = 'Leave a review';
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 // Public, unauthenticated read endpoints for the dealer website. Mounted at /api/public.
 import { Hono } from 'hono';
-import { shapeVehicle, shapeImage, VEHICLE_SELECT, getSettings, getDefaultDealer } from '../lib/util.js';
+import { shapeVehicle, shapeImage, VEHICLE_SELECT, getSettings, getDefaultDealer, PRIVATE_VEHICLE_FIELDS } from '../lib/util.js';
 
 const pub = new Hono();
 
@@ -41,7 +41,9 @@ pub.get('/vehicles/highlighted', async c => {
 
 // GET /api/public/vehicles/:id — available or reserved/sold (so old links still resolve), never archived/paused
 pub.get('/vehicles/:id', async c => {
-  const row = await c.env.DB.prepare(`SELECT ${VEHICLE_SELECT} FROM vehicles v WHERE v.id = ? AND v.status IN ('available','reserved','sold')`).bind(c.req.param('id')).first();
+  const d = await dealerFor(c);
+  if (!d) return c.json({ error: 'Dealer not found' }, 404);
+  const row = await c.env.DB.prepare(`SELECT ${VEHICLE_SELECT} FROM vehicles v WHERE v.id = ? AND v.dealer_id = ? AND v.status IN ('available','reserved','sold')`).bind(c.req.param('id'), d.id).first();
   if (!row) return c.json({ error: 'Vehicle not found' }, 404);
   const { results } = await c.env.DB.prepare('SELECT * FROM vehicle_images WHERE vehicle_id = ? ORDER BY is_primary DESC, sort_order, id').bind(row.id).all();
   const settings = await getSettings(c.env, row.dealer_id);
@@ -55,8 +57,10 @@ pub.get('/reviews', async c => {
   return c.json(results);
 });
 
+/** Strip staff-only columns. Driven by one list so a new private column cannot leak. */
 function scrub(v) {
-  const { vin, prev_price, external_ref, dealer_id, ...rest } = v;
+  const rest = { ...v };
+  for (const k of PRIVATE_VEHICLE_FIELDS) delete rest[k];
   return rest;
 }
 

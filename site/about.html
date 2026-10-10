@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About Us | M6 Motors, Ballinasloe</title>
+  <meta name="description" content="M6 Motors sells quality used cars on the Athlone Road in Ballinasloe, Co. Galway, just off the M6. Finance arranged, trade-ins welcome.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/img/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/img/favicon.png">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <div class="wrap">
+    <div class="page-head">
+      <p class="crumbs"><a href="/">Home</a> <span>/</span> <span>About us</span></p>
+      <h1 id="about-title">A Galway garage that shows you the whole car</h1>
+    </div>
+  </div>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap split">
+      <img id="about-img" src="/img/about-gle.jpg" alt="Cars on the forecourt at M6 Motors" width="1400" height="933" loading="lazy">
+      <div>
+        <p class="kicker" id="about-kicker">About M6 Motors</p>
+        <p id="about-text" class="lede-dark">M6 Motors sells quality used cars from Dolan's Service Station on the Athlone Road in Ballinasloe. We keep a mixed range, mostly German and premium, and we photograph every one of them in detail before it goes up.</p>
+        <ul class="checklist" id="about-points">
+          <li>Premium and family stock, from hatchbacks to seven-seat SUVs</li>
+          <li>Finance arranged through First Citizen, Bluestone and Alphera</li>
+          <li>Fair trade-in prices against anything on the forecourt</li>
+          <li>Sales, service and aftersales all on the one site</li>
+        </ul>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn btn-dark" href="/stock">View our stock</a>
+          <a class="btn btn-outline" href="/contact">Get in touch</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band">
+    <div class="wrap">
+      <div class="section-head centred"><h2>Why choose M6 Motors</h2></div>
+      <div class="stat-grid">
+        <div class="stat"><strong>11,500</strong><span>Cars Sold</span></div>
+        <div class="stat"><strong>15</strong><span>Years in Business</span></div>
+        <div class="stat"><strong>402</strong><span>Reviews</span></div>
+        <div class="stat"><strong id="stat-stock">—</strong><span>Cars in Stock</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Meet the team: needs names and photographs from M6 before it goes live. -->
+  <section class="section" id="team-section" hidden>
+    <div class="wrap">
+      <div class="section-head centred"><h2>Meet the team</h2></div>
+      <div class="car-grid" id="team"></div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head centred"><h2>Find us</h2></div>
+      <div class="visit">
+        <div class="visit-map"><iframe title="Map to M6 Motors" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=53.3289,-8.2286&z=14&output=embed"></iframe></div>
+        <div class="info-card" id="visit-card"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/js/consent.js"></script>
+  <script src="/js/site.js"></script>
+  <script>
+    (async () => {
+      const { dealer, cars, site } = await loadStock();
+      renderChrome(dealer, '/about');
+      const $ = id => document.getElementById(id);
+      if (site) {
+        if (site.about_kicker) $('about-kicker').textContent = site.about_kicker;
+        if (site.about_title) $('about-title').textContent = site.about_title.replace(/\*/g, '');
+        if (site.about_text) $('about-text').textContent = site.about_text;
+        if (site.about_image) $('about-img').src = site.about_image;
+        if (site.about_points?.length) $('about-points').innerHTML = site.about_points.map(p => `<li>${fmt.esc(p)}</li>`).join('');
+      }
+      $('stat-stock').textContent = cars.length;
+      $('visit-card').innerHTML = `
+        <h3>${fmt.esc(dealer.name)}</h3>
+        <div class="info-row"><div><strong>Address</strong>${fmt.esc(dealer.address)}</div></div>
+        <div class="info-row"><div><strong>Phone</strong><a href="${dealer.phoneHref}">${fmt.esc(dealer.phone)}</a></div></div>
+        <div class="info-row"><div><strong>Email</strong><a href="mailto:${dealer.email}">${fmt.esc(dealer.email)}</a></div></div>
+        <div class="info-row"><div><strong>Opening hours</strong><dl class="hours">${dealer.hours.map(([d, h]) => `<dt>${fmt.esc(d)}</dt><dd>${fmt.esc(h)}</dd>`).join('')}</dl></div></div>
+        <div style="margin-top:18px"><a class="btn btn-dark" href="${dealer.maps}" target="_blank" rel="noopener">Directions</a></div>`;
+    })();
+  </script>
+</body>
+</html>

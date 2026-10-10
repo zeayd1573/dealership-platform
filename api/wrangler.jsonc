@@ -14,7 +14,7 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     // Paths the Worker must handle before static assets: the API, SEO pages, and redirects from the old site.
-    "run_worker_first": ["/api/*", "/", "/stock", "/cars/*", "/sitemap.xml", "/robots.txt", "/car-details", "/car-details/*", "/used-cars/*", "/apply-for-finance/*"]
+    "run_worker_first": ["/api/*", "/", "/stock", "/cars/*", "/sitemap.xml", "/robots.txt", "/finance", "/sell-your-car", "/car-sourcing", "/about", "/reviews", "/contact", "/privacy", "/vehicle", "/vehicle/*", "/used-cars", "/used-cars/*", "/search", "/search/*", "/cashforcars", "/cashforcars/*"]
   },
 
   "d1_databases": [
@@ -27,9 +27,9 @@
 
   "vars": {
     // Where uploaded images are served from. Locally the Worker streams them from R2 via /api/files/<key>.
-    // In production point this at the bucket's public domain, e.g. https://img.mhlmotors.ie
+    // In production point this at the bucket's public domain, e.g. https://img.m6motors.ie
     "PUBLIC_IMAGE_BASE": "/api/files",
-    "DEFAULT_DEALER_SLUG": "mhlmotors",
+    "DEFAULT_DEALER_SLUG": "m6motors",
     "CORS_ORIGINS": "http://localhost:3100,http://localhost:3101,http://localhost:3102,http://127.0.0.1:3102"
   },
   "observability": { "enabled": true }

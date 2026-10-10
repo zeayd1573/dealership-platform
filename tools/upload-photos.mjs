@@ -7,7 +7,9 @@ import path from 'node:path';
 const [BASE, VID, DIR] = process.argv.slice(2);
 const REPLACE = process.argv.includes('--replace');
 if (!BASE || !VID || !DIR) { console.error('usage: node tools/upload-photos.mjs <base-url> <vehicle-id> <folder> [--replace]'); process.exit(1); }
-const user = process.env.ADMIN_USER || 'admin', pass = process.env.ADMIN_PASS || 'mhl-admin-2026';
+const user = process.env.ADMIN_USER || 'admin';
+const pass = process.env.ADMIN_PASS;
+if (!pass) { console.error('Set ADMIN_PASS in the environment, e.g.  ADMIN_PASS=... node ' + process.argv[1].split('/').pop()); process.exit(1); }
 
 const login = await (await fetch(`${BASE}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) })).json();
 if (!login.token) { console.error('login failed', login); process.exit(1); }

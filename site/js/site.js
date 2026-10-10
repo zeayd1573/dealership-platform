@@ -1,5 +1,5 @@
 /* =====================================================
-   MHL MOTORS — SHARED SITE LOGIC
+   M6 MOTORS — SHARED SITE LOGIC
    Data source is data/stock.json for now; swap `loadStock`
    to the platform API when the backend is wired up.
    ===================================================== */
@@ -8,7 +8,7 @@
 const API_BASE = window.API_BASE ?? (location.port === '8787' || !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '' : 'http://localhost:8787');
 const API = API_BASE + '/api';
 window.API = API;
-const SAVED_KEY = 'mhl_saved_cars';
+const SAVED_KEY = 'm6_saved_cars';
 let DEFAULT_APR = 6.9;
 
 /* ── Icons (inline SVG, 24x24 viewBox) ───────────── */
@@ -134,7 +134,7 @@ function carCard(c) {
         <div class="spec-chips">${chips.map(s => `<span>${fmt.esc(s)}</span>`).join('')}</div>
         <div class="car-card-price">
           <div class="price">${fmt.eur(c.price)}</div>
-          ${c.weekly ? `<div class="per-week">from <strong>€${c.weekly}</strong>/week</div>` : ''}
+          ${c.monthly ? `<div class="per-week"><span>Monthly</span><strong>€${c.monthly}</strong></div>` : ''}
         </div>
       </div>
     </article>`;
@@ -143,14 +143,14 @@ window.carCard = carCard;
 
 /* ── Header & footer (rendered once, shared) ─────── */
 function renderChrome(dealer, active) {
-  const links = [['/', 'Home'], ['/stock', 'Used Cars'], ['/finance', 'Finance'], ['/sell-your-car', 'Sell Your Car'], ['/contact', 'Contact']];
+  const links = [['/', 'Home'], ['/stock', 'Used Cars'], ['/finance', 'Finance'], ['/sell-your-car', 'Sell Your Car'], ['/about', 'About'], ['/contact', 'Contact']];
   const here = location.pathname.replace(/\.html$/, '').replace(/\/index$/, '/') || '/';
   const nav = links.map(([h, t]) => `<a href="${h}" ${(active ? active === h : here === h) ? 'aria-current="page"' : ''}>${t}</a>`).join('');
   const header = document.querySelector('.site-header');
-  const town = (dealer.address || '').split(',').slice(1, 2).join('').trim() || 'Co. Westmeath';
+  const town = (dealer.address || '').split(',').slice(1, 2).join('').trim() || 'Co. Galway';
   if (header) header.innerHTML = `
     <div class="wrap">
-      <a class="brand" href="/" aria-label="${fmt.esc(dealer.name)} home"><img src="/img/mhl-logo.png" alt="${fmt.esc(dealer.name)}" width="550" height="99"></a>
+      <a class="brand" href="/" aria-label="${fmt.esc(dealer.name)} home"><img src="/img/m6-logo.png" alt="${fmt.esc(dealer.name)}" width="605" height="445"></a>
       <nav class="nav" aria-label="Main">${nav}</nav>
       <div class="header-actions">
         <a class="header-phone" href="${dealer.phoneHref}">${ICONS.phone}<span>${dealer.phone}</span></a>
@@ -166,10 +166,10 @@ function renderChrome(dealer, active) {
   if (footer) footer.innerHTML = `
     <div class="wrap">
       <div>
-        <div class="brand"><img src="/img/mhl-logo.png" alt="${fmt.esc(dealer.name)}" width="550" height="99"></div>
+        <div class="brand"><img src="/img/m6-logo.png" alt="${fmt.esc(dealer.name)}" width="605" height="445"></div>
         <p>${fmt.esc(window.site?.footer_blurb || '')}</p>
       </div>
-      <div><h4>Explore</h4><ul>${links.map(([h, t]) => `<li><a href="${h}">${t}</a></li>`).join('')}<li><a href="/car-sourcing">Car Sourcing</a></li></ul></div>
+      <div><h4>Explore</h4><ul>${links.map(([h, t]) => `<li><a href="${h}">${t}</a></li>`).join('')}<li><a href="/car-sourcing">Car Sourcing</a></li><li><a href="/about">About Us</a></li><li><a href="/reviews">Reviews</a></li></ul></div>
       <div><h4>Opening hours</h4><ul>${dealer.hours.map(([d, h]) => `<li>${d}: ${h}</li>`).join('')}</ul></div>
       <div><h4>Contact</h4><ul>
         <li><a href="${dealer.phoneHref}">${dealer.phone}</a></li>
@@ -177,7 +177,7 @@ function renderChrome(dealer, active) {
         <li><a href="${dealer.maps}" target="_blank" rel="noopener">${dealer.address}</a></li>
       </ul></div>
     </div>
-    <div class="footer-bottom"><div class="wrap"><span>&copy; ${new Date().getFullYear()} ${fmt.esc(dealer.name)} Ltd. All rights reserved.</span><span>Privacy &middot; Terms</span></div></div>`;
+    <div class="footer-bottom"><div class="wrap"><span>&copy; ${new Date().getFullYear()} ${fmt.esc(dealer.name)} Ltd. All rights reserved.</span><span><a href="/privacy">Privacy &amp; cookies</a> &middot; <a href="#" data-cookie-settings>Cookie settings</a></span></div></div>`;
   updateSavedCount();
 }
 window.renderChrome = renderChrome;

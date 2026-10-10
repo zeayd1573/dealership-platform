@@ -4,23 +4,44 @@ import { requireAuth } from '../lib/auth.js';
 import { shapeImage } from '../lib/util.js';
 import { getSite } from '../lib/site.js';
 
+/**
+ * Only real raster images get stored. Checking the declared type is not enough:
+ * "image/svg+xml" passes that test and an SVG can carry <script>, which would then
+ * execute on our own origin, next door to the admin panel and its login token.
+ * So we read the magic bytes instead and accept only JPEG, PNG, WebP and GIF.
+ */
+export function sniffImage(bytes) {
+  const b = new Uint8Array(bytes);
+  if (b.length < 12) return null;
+  if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return 'image/jpeg';
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return 'image/png';
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+      b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp';
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38) return 'image/gif';
+  return null;
+}
+
 /** Single resize (used for site images). Falls back to the original bytes without the Images binding. */
 export async function resizeImage(env, file, width, quality = 82) {
   const original = await file.arrayBuffer();
-  if (!env.IMAGES) return { buffer: original, type: file.type || 'image/jpeg', resized: false };
+  const sniffed = sniffImage(original);
+  if (!sniffed) throw new Error('That file is not a JPEG, PNG, WebP or GIF image');
+  if (!env.IMAGES) return { buffer: original, type: sniffed, resized: false };
   try {
     const r = await env.IMAGES.input(new Blob([original]).stream()).transform({ width, fit: 'scale-down' }).output({ format: 'image/jpeg', quality });
     return { buffer: await r.response().arrayBuffer(), type: 'image/jpeg', resized: true };
   } catch (err) {
     console.warn('Images binding transform failed, storing original:', err.message);
-    return { buffer: original, type: file.type || 'image/jpeg', resized: false };
+    return { buffer: original, type: sniffed, resized: false };
   }
 }
 
 /** Resize with the Images binding when available; otherwise store the original bytes. */
 async function processImage(env, file) {
   const original = await file.arrayBuffer();
-  const out = { main: original, thumb: original, type: file.type || 'image/jpeg', resized: false };
+  const sniffed = sniffImage(original);
+  if (!sniffed) throw new Error('That file is not a JPEG, PNG, WebP or GIF image');
+  const out = { main: original, thumb: original, type: sniffed, resized: false };
   if (!env.IMAGES) return out;
   try {
     const run = async (width, quality) => {
@@ -53,8 +74,11 @@ uploads.post('/:id/images', async c => {
   list = list.filter(f => f && typeof f === 'object' && 'arrayBuffer' in f).slice(0, 20);
   if (!list.length) return c.json({ error: 'No images provided' }, 400);
   for (const f of list) {
-    if (f.type && !f.type.startsWith('image/')) return c.json({ error: `Not an image: ${f.name}` }, 400);
     if (f.size > 20 * 1024 * 1024) return c.json({ error: `File too large (max 20MB): ${f.name}` }, 400);
+    // A declared content type is attacker-controlled; read the first bytes instead.
+    if (!sniffImage(await f.slice(0, 16).arrayBuffer())) {
+      return c.json({ error: `Not a JPEG, PNG, WebP or GIF image: ${f.name}` }, 400);
+    }
   }
 
   const hasPrimary = await c.env.DB.prepare('SELECT 1 FROM vehicle_images WHERE vehicle_id = ? AND is_primary = 1').bind(id).first();

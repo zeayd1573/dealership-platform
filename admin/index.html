@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Stock · Dealer admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
@@ -88,11 +88,12 @@
           <div class="card-price"><span class="price">${eur(c.price)}</span>${c.weekly ? `<small>from €${c.weekly}/wk</small>` : ''}</div>
           <div class="card-actions">
             <a class="btn btn-dark" href="car.html?id=${c.id}">Edit</a>
+            <a class="btn btn-outline" href="windscreen.html?id=${c.id}" title="Printable windscreen card">Print card</a>
             <select class="select" data-status="${c.id}" aria-label="Change status">
               ${['available', 'paused', 'reserved', 'sold'].map(s => `<option value="${s}" ${c.status === s ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}
             </select>
           </div>
-          <div class="card-meta"><span>Added ${timeAgo(c.created_at)}</span>${noPhotos ? '<span class="warn">Add photos to go live</span>' : c.status === 'available' ? '<span>Visible on website</span>' : '<span>Hidden from website</span>'}</div>
+          <div class="card-meta"><span>Added ${timeAgo(c.created_at)}</span>${c.view_count ? `<span>${Number(c.view_count).toLocaleString('en-IE')} views</span>` : ''}${noPhotos ? '<span class="warn">Add photos to go live</span>' : c.status === 'available' ? '<span>Visible on website</span>' : '<span>Hidden from website</span>'}</div>
         </div>
       </article>`;
     };
@@ -107,6 +108,14 @@
     $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $('tabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x === b)); filter = b.dataset.f; render(); });
     $('q').addEventListener('input', e => { q = e.target.value; render(); });
     $('sort').addEventListener('change', e => { sort = e.target.value; render(); });
+    // A mouse wheel over an unfocused <select> changes its value in most browsers,
+    // which silently marked cars sold while the user was only scrolling the page.
+    // Ignore the wheel unless the dropdown has deliberately been focused.
+    $('cards').addEventListener('wheel', e => {
+      const sel = e.target.closest('[data-status]');
+      if (sel && document.activeElement !== sel) sel.blur();
+    }, { passive: true });
+
     $('cards').addEventListener('change', async e => {
       const sel = e.target.closest('[data-status]'); if (!sel) return;
       const id = Number(sel.dataset.status); const status = sel.value;
