@@ -4,6 +4,7 @@
   // Deploy: create the D1 database and R2 bucket, paste the D1 id below, set secrets, `npm run deploy`.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dealer-platform-api",
+  "account_id": "1c183ab39763f3149b841bffec1ae253",
   "main": "src/index.js",
   "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"],

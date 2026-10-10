@@ -1,7 +1,7 @@
 # Dealership Platform
 
 Car-dealer website + control panel + API, running on Cloudflare (Workers, D1, R2, Images).
-First live dealer: MHL Motors, Kilbeggan — https://dealer-platform-api.zeyad-1c1.workers.dev
+Live dealer: M6 Motors, Ballinasloe (rebranded from MHL Motors 2026-09-24) — https://dealer-platform-api.zeyad-1c1.workers.dev
 
 ## Layout
 
@@ -10,7 +10,7 @@ First live dealer: MHL Motors, Kilbeggan — https://dealer-platform-api.zeyad-1
 | `api/`   | Cloudflare Worker (Hono). Routes in `src/routes`, schema in `migrations/`, deploy with `./deploy.sh`. Serves `site/` at `/` and `admin/` at `/admin/` in production. |
 | `site/`  | Public dealer website (static HTML/CSS/JS, reads the API). |
 | `admin/` | Dealer control panel (static, needs a login). |
-| `tools/` | Dev helpers: `e2e.js` (browser test), `shoot.js` (screenshots), `mhl-stock/` (scraped MHL data + import source). |
+| `tools/` | Dev helpers: `e2e.js` (browser test), `shoot.js` (screenshots), `m6-stock/` and `mhl-stock/` (scraped dealer data + photos, import sources). |
 
 ## Run locally
 
@@ -23,7 +23,12 @@ Seed MHL's cars: `cd api && npm run import:mhl`.
 
 ## Deploy
 
-`cd api && ./deploy.sh` — builds assets, applies migrations, sets any missing secrets, deploys.
+**Automatic:** every push to `main` that touches `api/`, `site/` or `admin/` is deployed by
+`.github/workflows/deploy.yml` (applies D1 migrations, then `wrangler deploy`). Run it by hand from
+the Actions tab → Deploy → Run workflow. Needs the `CLOUDFLARE_API_TOKEN` repo secret.
+Edit from anywhere: github.com (press `.` for the web editor) or a Claude Code cloud session.
+
+Manual, from a computer: `cd api && ./deploy.sh` — builds assets, applies migrations, sets any missing secrets, deploys.
 Quick redeploy of code/pages only: `npm run deploy`.
 
 ## Test
