@@ -26,7 +26,7 @@ const S = {
   profile: null, base: '', userInfo: null,
   tab: 'live', cat: 'all', query: '',
   data: {},            // kind -> {cats, items}
-  favs: new Set(), prog: {},
+  favs: new Set(), prog: {}, hist: {}, seriesCache: {},
   list: [],            // currently displayed items
   playing: null,       // {kind, item, ...}
 };
@@ -117,9 +117,10 @@ async function openProfile(p) {
     S.profile = p; S.base = base; S.userInfo = info; S.data = {};
     S.favs = new Set(store.get('favs:' + p.id, []));
     S.prog = store.get('prog:' + p.id, {});
+    S.hist = store.get('hist:' + p.id, {}); S.seriesCache = {};
     store.set('lastProfile', p.id);
     renderAccount();
-    setTab('live');
+    setTab('home');
   } catch (ex) {
     $('#content').replaceChildren(h('div', { class: 'empty' }, ex.message, h('br'), h('br'), h('button', { class: 'btn', onclick: showProfiles }, 'Back')));
   }
@@ -152,12 +153,14 @@ function setTab(tab) {
 }
 $('#tabs').onclick = (e) => { if (e.target.dataset.tab) setTab(e.target.dataset.tab); };
 let searchT;
-$('#search').oninput = (e) => { clearTimeout(searchT); searchT = setTimeout(() => { S.query = e.target.value.trim().toLowerCase(); renderList(); }, 200); };
+$('#search').oninput = (e) => { clearTimeout(searchT); searchT = setTimeout(() => { S.query = e.target.value.trim().toLowerCase(); if (S.tab === 'home') { if (S.query) setTab('movies'); } else renderList(); }, 200); };
 $('#btn-refresh').onclick = () => { S.data = {}; render(); };
 
 async function render() {
   const content = $('#content');
   content.replaceChildren(h('div', { class: 'empty' }, 'Loading…'));
+  $('#cats').replaceChildren();
+  if (S.tab === 'home') { renderToken++; return renderHome(); }
   try {
     if (S.tab === 'favs') await Promise.all(Object.keys(KINDS).map(load));
     else await load(S.tab);
@@ -247,6 +250,67 @@ function card(it) {
     p && p.d ? h('div', { class: 'progress', style: `width:${Math.min(100, (p.t / p.d) * 100)}%` }) : null);
 }
 
+/* ---------------- home (Continue Watching + My List) ---------------- */
+function row(title, children, cls = '') {
+  return h('section', { class: 'shelf' }, h('h3', {}, title), h('div', { class: 'hrow ' + cls }, children));
+}
+async function continueEntries() {
+  // newest entry per series / movie; finished movies drop out, finished episodes become "next episode"
+  const sorted = Object.values(S.hist).sort((a, b) => b.updated - a.updated);
+  const seen = new Set(), out = [];
+  for (const e of sorted) {
+    const gk = e.kind === 'ep' ? 's' + e.seriesId : 'm' + e.id;
+    if (seen.has(gk)) continue;
+    seen.add(gk);
+    const done = e.d && e.t / e.d >= FINISHED;
+    if (e.kind === 'movie') { if (!done && e.t > 20) out.push({ ...e }); continue; }
+    if (!done) { out.push({ ...e }); continue; }
+    try {
+      const { flat } = await seriesEpisodes(e.seriesId);
+      const i = flat.findIndex((x) => String(x.id) === e.epId);
+      if (i >= 0 && flat[i + 1]) out.push({ ...e, next: true, nextIdx: i + 1, epNum: flat[i + 1].episode_num, season: flat[i + 1].season, t: 0 });
+    } catch { /* offline: skip the "next" suggestion */ }
+  }
+  return out.slice(0, 20);
+}
+function continueCard(e) {
+  const seriesItem = () => ({ _id: e.seriesId, _name: e.title, cover: e.poster, _kind: 'series' });
+  const sub = e.kind === 'ep' ? `S${e.season} E${e.epNum}${e.next ? ' · Up next' : ` · ${fmt(e.t)}`}` : `${fmt(e.t)} / ${fmt(e.d)}`;
+  const play = async () => {
+    if (e.kind === 'movie') return playVod({ _id: e.id, _name: e.title, stream_icon: e.poster, _kind: 'movies' }, e.key, streamUrl.movie(e.id, e.ext), e.title, undefined, { meta: { kind: 'movie', id: e.id, title: e.title, poster: e.poster, ext: e.ext } });
+    try {
+      const { flat } = await seriesEpisodes(e.seriesId);
+      const idx = e.next ? e.nextIdx : flat.findIndex((x) => String(x.id) === e.epId);
+      if (idx >= 0) playEpisode(seriesItem(), flat, idx, e.next ? 0 : e.t);
+    } catch (ex) { alert('Could not load episodes: ' + ex.message); }
+  };
+  const x = h('button', { class: 'star', title: 'Remove from Continue Watching', onclick: (ev) => { ev.stopPropagation(); for (const k of Object.keys(S.hist)) if (S.hist[k].kind === e.kind && (e.kind === 'ep' ? S.hist[k].seriesId === e.seriesId : S.hist[k].id === e.id)) delete S.hist[k]; store.set('hist:' + S.profile.id, S.hist); render(); } }, '✕');
+  return h('div', { class: 'card', onclick: play },
+    h('div', { class: 'poster' }, e.poster ? img(e.poster, '') : '🎬'), x,
+    h('div', { class: 'title' }, e.title, h('div', { class: 'muted sub' }, sub)),
+    !e.next && e.d ? h('div', { class: 'progress', style: `width:${Math.min(100, (e.t / e.d) * 100)}%` }) : null);
+}
+async function renderHome() {
+  const content = $('#content');
+  const token = ++renderToken;
+  let conts, lists;
+  try {
+    [conts, lists] = await Promise.all([continueEntries(), S.favs.size ? Promise.all(Object.keys(KINDS).map(load)) : []]);
+  } catch (ex) { content.replaceChildren(h('div', { class: 'empty' }, 'Could not load: ' + ex.message)); return; }
+  if (token !== renderToken) return;
+  const shelves = [];
+  if (conts.length) shelves.push(row('Continue Watching', conts.map(continueCard)));
+  const favOf = (kind) => (S.data[kind]?.items || []).filter((i) => S.favs.has(kind + ':' + i._id)).map((i) => card({ ...i, _kind: kind }));
+  const fm = favOf('movies'), fs = favOf('series'), fl = favOf('live');
+  S.list = (S.data.live?.items || []).filter((i) => S.favs.has('live:' + i._id)).map((i) => ({ ...i, _kind: 'live' }));
+  if (fs.length) shelves.push(row('My Series', fs));
+  if (fm.length) shelves.push(row('My Movies', fm));
+  if (fl.length) shelves.push(row('My Channels', fl, 'live'));
+  if (!shelves.length) shelves.push(h('div', { class: 'empty' }, h('h2', {}, 'Welcome 👋'), 'Browse Live TV, Movies or Series and tap ☆ to build My List.', h('br'), 'Anything you start watching shows up here under Continue Watching.'));
+  content.replaceChildren(...shelves);
+  content.scrollTop = 0;
+}
+
 /* ---------------- details ---------------- */
 const dlg = $('#dlg-detail');
 dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
@@ -266,43 +330,72 @@ async function openMovie(it) {
     detailHead(info.movie_image || it.stream_icon, it._name, [info.releasedate || info.releaseDate, info.genre, info.duration, info.rating && '★ ' + info.rating], info.plot || info.description),
     h('div', { class: 'dlg-actions' },
       h('button', { class: 'btn', onclick: () => dlg.close() }, 'Close'),
-      saved && saved.t > 30 ? h('button', { class: 'btn', onclick: () => { dlg.close(); playVod(it, key, streamUrl.movie(it._id, ext), it._name, 0); } }, 'Start over') : null,
-      h('button', { class: 'btn primary', onclick: () => { dlg.close(); playVod(it, key, streamUrl.movie(it._id, ext), it._name); } }, saved && saved.t > 30 ? `Resume ${fmt(saved.t)}` : '▶ Play')));
+      saved && saved.t > 30 ? h('button', { class: 'btn', onclick: () => { dlg.close(); playVod(it, key, streamUrl.movie(it._id, ext), it._name, 0, { meta: movieMeta(it, ext) }); } }, 'Start over') : null,
+      h('button', { class: 'btn primary', onclick: () => { dlg.close(); playVod(it, key, streamUrl.movie(it._id, ext), it._name, undefined, { meta: movieMeta(it, ext) }); } }, saved && saved.t > 30 ? `Resume ${fmt(saved.t)}` : '▶ Play')));
+}
+async function seriesEpisodes(seriesId) {
+  if (S.seriesCache[seriesId]) return S.seriesCache[seriesId];
+  const data = await api('get_series_info', { series_id: seriesId });
+  const eps = data.episodes || {};
+  const flat = [];
+  for (const sn of Object.keys(eps).sort((a, b) => a - b)) for (const e of eps[sn]) flat.push({ ...e, season: e.season || Number(sn), _s: sn });
+  return (S.seriesCache[seriesId] = { info: data.info || {}, flat });
+}
+// Where should "Continue" go for this series? -> {idx, startAt} or null
+function resumePoint(seriesId, flat) {
+  const last = Object.values(S.hist).filter((x) => x.kind === 'ep' && x.seriesId === String(seriesId)).sort((a, b) => b.updated - a.updated)[0];
+  if (!last) return null;
+  const idx = flat.findIndex((e) => String(e.id) === last.epId);
+  if (idx < 0) return null;
+  if (last.d && last.t / last.d < FINISHED) return { idx, startAt: last.t, entry: last };
+  return idx + 1 < flat.length ? { idx: idx + 1, startAt: 0, entry: last, next: true } : null;
 }
 async function openSeries(it) {
   const body = $('#detail');
   body.replaceChildren(h('p', { class: 'muted' }, 'Loading…'));
   dlg.showModal();
   let data;
-  try { data = await api('get_series_info', { series_id: it._id }); } catch (ex) { body.replaceChildren(h('p', { class: 'error' }, ex.message)); return; }
-  const info = data.info || {};
-  const eps = data.episodes || {};
-  const seasons = Object.keys(eps).sort((a, b) => a - b);
+  try { data = await seriesEpisodes(it._id); } catch (ex) { body.replaceChildren(h('p', { class: 'error' }, ex.message)); return; }
+  const { info, flat } = data;
+  const seasons = [...new Set(flat.map((e) => e._s))];
   const epList = h('div', { class: 'episodes' });
   const seasonBar = h('div', { class: 'seasons' });
-  const show = (s) => {
-    for (const b of seasonBar.children) b.classList.toggle('active', b.dataset.s === s);
-    const list = eps[s];
-    epList.replaceChildren(...list.map((e, idx) => {
-      const key = 'ep:' + e.id, p = S.prog[key];
-      return h('button', { class: 'ep', onclick: () => { dlg.close(); playEpisode(it, list, idx); } },
+  const show = (sn) => {
+    for (const b of seasonBar.children) b.classList.toggle('active', b.dataset.s === sn);
+    epList.replaceChildren(...flat.map((e, idx) => [e, idx]).filter(([e]) => e._s === sn).map(([e, idx]) => {
+      const p = S.prog['ep:' + e.id];
+      return h('button', { class: 'ep', onclick: () => { dlg.close(); playEpisode(it, flat, idx); } },
         h('span', { class: 'n' }, e.episode_num), h('span', { class: 't' }, e.title || `Episode ${e.episode_num}`),
-        h('span', { class: 'muted' }, p && p.d ? (p.t / p.d > 0.95 ? '✓' : Math.round((p.t / p.d) * 100) + '%') : (e.info?.duration || '')));
+        h('span', { class: 'muted' }, p && p.d ? (p.t / p.d >= FINISHED ? '✓' : Math.round((p.t / p.d) * 100) + '%') : (e.info?.duration || '')));
     }));
   };
-  for (const s of seasons) seasonBar.append(h('button', { 'data-s': s, onclick: () => show(s) }, 'Season ' + s));
+  for (const sn of seasons) seasonBar.append(h('button', { 'data-s': sn, onclick: () => show(sn) }, 'Season ' + sn));
+  const rp = resumePoint(it._id, flat);
+  const fKey = 'series:' + it._id;
+  const favBtn = h('button', { class: 'btn' }, S.favs.has(fKey) ? '★ In My List' : '☆ Add to My List');
+  favBtn.onclick = () => { toggleFav({ ...it, _kind: 'series' }); favBtn.textContent = S.favs.has(fKey) ? '★ In My List' : '☆ Add to My List'; };
+  const actions = h('div', { class: 'dlg-actions' }, h('button', { class: 'btn', onclick: () => dlg.close() }, 'Close'), favBtn);
+  if (rp) {
+    const e = flat[rp.idx];
+    actions.append(h('button', { class: 'btn primary', onclick: () => { dlg.close(); playEpisode(it, flat, rp.idx, rp.startAt); } },
+      `▶ ${rp.next ? 'Next' : 'Continue'}: S${e.season} E${e.episode_num}` + (rp.startAt > 10 ? ` (${fmt(rp.startAt)})` : '')));
+  } else if (flat.length) {
+    actions.append(h('button', { class: 'btn primary', onclick: () => { dlg.close(); playEpisode(it, flat, 0); } }, '▶ Play S' + flat[0].season + ' E' + flat[0].episode_num));
+  }
   body.replaceChildren(
     detailHead(info.cover || it.cover, it._name, [info.releaseDate || info.releasedate, info.genre, info.rating && '★ ' + info.rating], info.plot),
-    ...(seasons.length ? [seasonBar, epList] : [h('p', { class: 'muted' }, 'No episodes available.')]),
-    h('div', { class: 'dlg-actions' }, h('button', { class: 'btn', onclick: () => dlg.close() }, 'Close')));
-  if (seasons.length) show(seasons[0]);
+    ...(flat.length ? [seasonBar, epList] : [h('p', { class: 'muted' }, 'No episodes available.')]),
+    actions);
+  if (flat.length) show(rp ? flat[rp.idx]._s : seasons[0]);
 }
+const FINISHED = 0.92;
+function movieMeta(it, ext) { return { kind: 'movie', id: it._id, title: it._name, poster: it.stream_icon, ext }; }
 const fmt = (s) => { s = Math.floor(s); const m = Math.floor(s / 60), h2 = Math.floor(m / 60); return (h2 ? h2 + ':' : '') + String(m % 60).padStart(h2 ? 2 : 1, '0') + ':' + String(s % 60).padStart(2, '0'); };
 
 /* ---------------- player ---------------- */
 const video = $('#video'), pEl = $('#player'), pMsg = $('#p-msg');
 let hls = null, mpegts = null, saveT = 0;
-const P = { live: false, key: null, onEnded: null };
+const P = { live: false, key: null, onEnded: null, meta: null };
 
 function destroyEngines() {
   hls?.destroy(); hls = null;
@@ -319,9 +412,9 @@ function closePlayer() {
   saveProgress(true);
   destroyEngines();
   pEl.classList.add('hidden');
-  P.key = null; P.onEnded = null; S.playing = null;
+  P.key = null; P.onEnded = null; P.meta = null; S.playing = null;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  if (S.tab && !$('#view-app').classList.contains('hidden') && S.tab !== 'live') refreshProgressBars();
+  if (!$('#view-app').classList.contains('hidden') && S.tab === 'home') render();
 }
 $('#p-close').onclick = closePlayer;
 $('#p-fs').onclick = toggleFs;
@@ -400,7 +493,7 @@ async function loadEpg(it) {
 function playVod(it, key, url, title, startAt, extra = {}) {
   destroyEngines();
   S.playing = { kind: 'vod', item: it };
-  Object.assign(P, { live: false, key, onEnded: extra.onEnded || null });
+  Object.assign(P, { live: false, key, onEnded: extra.onEnded || null, meta: extra.meta || null });
   openPlayer(title);
   $('#p-side').classList.add('hidden');
   for (const id of ['p-prev', 'p-next']) $('#' + id).classList.add('hidden');
@@ -417,11 +510,15 @@ function playVod(it, key, url, title, startAt, extra = {}) {
   else video.src = px(url);
   video.play().catch(() => {});
 }
-function playEpisode(series, list, idx) {
-  const e = list[idx];
+function playEpisode(series, flat, idx, startAt) {
+  const e = flat[idx];
   const ext = e.container_extension || 'mp4';
-  playVod({ ...series, _kind: series._kind || 'series' }, 'ep:' + e.id, streamUrl.episode(e.id, ext), `${series._name} – S${e.season || ''}E${e.episode_num} ${e.title || ''}`.trim(), undefined,
-    { onEnded: () => { if (list[idx + 1]) playEpisode(series, list, idx + 1); } });
+  const sItem = { ...series, _kind: 'series' };
+  playVod(sItem, 'ep:' + e.id, streamUrl.episode(e.id, ext), `${series._name} – S${e.season}E${e.episode_num} ${e.title || ''}`.trim(), startAt,
+    {
+      onEnded: () => { if (flat[idx + 1]) playEpisode(series, flat, idx + 1); },
+      meta: { kind: 'ep', seriesId: String(series._id), epId: String(e.id), season: e.season, epNum: e.episode_num, title: series._name, epTitle: e.title || '', poster: series.cover || series.stream_icon, ext },
+    });
 }
 
 video.addEventListener('error', () => {
@@ -436,8 +533,13 @@ function saveProgress(force) {
   saveT = Date.now();
   S.prog[P.key] = { t: video.currentTime, d: video.duration };
   store.set('prog:' + S.profile.id, S.prog);
+  if (P.meta) {
+    S.hist[P.key] = { ...P.meta, key: P.key, t: video.currentTime, d: video.duration, updated: Date.now() };
+    const keys = Object.keys(S.hist).sort((a, b) => S.hist[b].updated - S.hist[a].updated);
+    for (const k of keys.slice(60)) delete S.hist[k];
+    store.set('hist:' + S.profile.id, S.hist);
+  }
 }
-function refreshProgressBars() { if (!$('#view-app').classList.contains('hidden')) renderList(); }
 
 document.addEventListener('keydown', (e) => {
   if (pEl.classList.contains('hidden') || /input|textarea/i.test(e.target.tagName)) return;

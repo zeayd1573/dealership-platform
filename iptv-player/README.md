@@ -14,7 +14,9 @@ Open http://127.0.0.1:8787, click **Add playlist**.
 - Multiple saved playlists (stored in your browser's localStorage only)
 - Live TV with categories, search, channel up/down (arrow keys), program guide (EPG), HLS with raw-TS fallback
 - Movies and Series (seasons/episodes, auto-play next episode), resume where you left off
-- Favorites, account info (expiry, connections)
+- Netflix-style Home: Continue Watching (movies + series, resumes mid-episode, or jumps to the next episode when you finished one) and My List shelves; ☆ anything to add it
+- Series pages have a "Continue S1 E3" / "Next" button; autoplay crosses seasons
+- Account info (expiry, connections)
 
 ## How it works
 `server.js` serves the UI plus `/proxy?url=...`, which fetches panel data and streams server-side. This avoids browser CORS /
