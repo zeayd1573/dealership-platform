@@ -1,0 +1,11 @@
+# One-click deploy on https://render.com : New > Blueprint > pick this repo.
+services:
+  - type: web
+    name: xtream-player
+    runtime: docker
+    rootDir: iptv-player
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: ACCESS_PASSWORD
+        generateValue: true     # shown in the Render dashboard > Environment; or replace with your own

@@ -418,7 +418,12 @@ function closePlayer() {
 }
 $('#p-close').onclick = closePlayer;
 $('#p-fs').onclick = toggleFs;
-function toggleFs() { document.fullscreenElement ? document.exitFullscreen() : pEl.requestFullscreen?.().catch(() => {}); }
+function toggleFs() {
+  if (document.fullscreenElement) return document.exitFullscreen();
+  // iPhone Safari can only fullscreen the <video> itself
+  if (pEl.requestFullscreen) pEl.requestFullscreen().catch(() => video.webkitEnterFullscreen?.());
+  else video.webkitEnterFullscreen?.();
+}
 
 function startHls(url, onFail) {
   if (!window.Hls || !Hls.isSupported()) {
@@ -556,3 +561,5 @@ document.addEventListener('keydown', (e) => {
 renderProfiles();
 const last = S.profiles.find((p) => p.id === store.get('lastProfile'));
 if (last && location.hash !== '#profiles') openProfile(last);
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
