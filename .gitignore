@@ -15,3 +15,10 @@ server.log
 
 # local Claude/MCP config
 .mcp.json
+
+# Xcode / generated
+*.xcodeproj
+xcuserdata/
+DerivedData/
+XtreamPlayerApple/Config/Info.plist
+.DS_Store
