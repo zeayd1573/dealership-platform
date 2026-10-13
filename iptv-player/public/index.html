@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="referrer" content="no-referrer">
+  <title>Xtream Player</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Cpath fill=%27%234f8cff%27 d=%27M3 2l11 6-11 6z%27/%3E%3C/svg%3E">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Xtream">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Profiles / login -->
+  <section id="view-profiles" class="screen">
+    <div class="profiles-wrap">
+      <h1>Xtream Player</h1>
+      <p class="muted">Choose a playlist or add a new one.</p>
+      <div id="profile-list" class="profile-list"></div>
+      <button id="btn-add-profile" class="btn primary">+ Add playlist</button>
+    </div>
+  </section>
+
+  <!-- Main app -->
+  <section id="view-app" class="screen hidden">
+    <header class="topbar">
+      <button id="btn-back" class="icon-btn" title="Switch playlist">&#8592;</button>
+      <div id="account" class="account"></div>
+      <nav id="tabs" class="tabs">
+        <button data-tab="home" class="active">Home</button>
+        <button data-tab="live">Live TV</button>
+        <button data-tab="movies">Movies</button>
+        <button data-tab="series">Series</button>
+        <button data-tab="favs">&#9733; My List</button>
+      </nav>
+      <input id="search" type="search" placeholder="Search&hellip;" autocomplete="off">
+      <button id="btn-refresh" class="icon-btn" title="Reload from server">&#8635;</button>
+    </header>
+    <div class="body">
+      <aside id="cats" class="cats"></aside>
+      <main id="content" class="content"></main>
+    </div>
+  </section>
+
+  <!-- Add / edit profile dialog -->
+  <dialog id="dlg-profile">
+    <form method="dialog" id="profile-form">
+      <h2 id="dlg-title">Add playlist</h2>
+      <label>Playlist name<input name="name" required placeholder="My IPTV"></label>
+      <label>Server host<input name="host" required placeholder="http://example.com:8080" autocapitalize="off" spellcheck="false"></label>
+      <label>Username<input name="username" required autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+      <label>Password<input name="password" required type="password" autocomplete="off"></label>
+      <p id="profile-error" class="error hidden"></p>
+      <div class="dlg-actions">
+        <button type="button" id="btn-cancel-profile" class="btn">Cancel</button>
+        <button type="submit" class="btn primary">Save &amp; connect</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Detail dialog (movie / series) -->
+  <dialog id="dlg-detail"><div id="detail"></div></dialog>
+
+  <!-- Player overlay -->
+  <div id="player" class="player hidden">
+    <div class="player-main">
+      <div class="player-bar">
+        <button id="p-close" class="icon-btn" title="Close (Esc)">&#10005;</button>
+        <div id="p-title" class="p-title"></div>
+        <button id="p-prev" class="icon-btn hidden" title="Previous channel (&uarr;)">&#9650;</button>
+        <button id="p-next" class="icon-btn hidden" title="Next channel (&darr;)">&#9660;</button>
+        <button id="p-fav" class="icon-btn" title="Favorite">&#9734;</button>
+        <button id="p-fs" class="icon-btn" title="Fullscreen (F)">&#9974;</button>
+      </div>
+      <div class="video-wrap">
+        <video id="video" controls autoplay playsinline></video>
+        <div id="p-msg" class="p-msg hidden"></div>
+      </div>
+    </div>
+    <aside id="p-side" class="player-side hidden"></aside>
+  </div>
+
+  <script src="vendor/hls.min.js"></script>
+  <script src="vendor/mpegts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

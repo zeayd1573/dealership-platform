@@ -1,0 +1,1 @@
+{ "name": "xtream-player", "version": "1.0.0", "private": true, "description": "Browser-based Xtream Codes IPTV player", "scripts": { "start": "node server.js", "mock": "node test/mock-xtream.js" }, "engines": { "node": ">=18" } }
