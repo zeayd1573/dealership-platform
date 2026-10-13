@@ -139,12 +139,50 @@ function renderAccount() {
 }
 
 /* ---------------- browsing ---------------- */
+const asArray = (x) => (Array.isArray(x) ? x : x && typeof x === 'object' ? Object.values(x) : []);
 async function load(kind) {
   if (S.data[kind]) return S.data[kind];
   const k = KINDS[kind];
   const [cats, items] = await Promise.all([api(k.cats), api(k.items)]);
-  const arr = (x) => (Array.isArray(x) ? x : []);
-  return (S.data[kind] = { cats: arr(cats), items: arr(items).map((i) => ({ ...i, _id: String(i[k.id]), _name: String(i.name || ''), _l: String(i.name || '').toLowerCase() })) });
+  const byId = new Map();
+  const add = (raw, catId) => {
+    const id = String(raw[k.id]);
+    if (!raw[k.id] && raw[k.id] !== 0) return;
+    let it = byId.get(id);
+    if (!it) {
+      it = { ...raw, _id: id, _name: String(raw.name || ''), _l: String(raw.name || '').toLowerCase(), cats: new Set() };
+      byId.set(id, it);
+    }
+    it.cats.add(String(catId ?? raw.category_id ?? ''));
+    for (const c of asArray(raw.category_ids)) it.cats.add(String(c));
+  };
+  asArray(items).forEach((raw) => add(raw));
+  const data = { cats: asArray(cats), items: [...byId.values()], stats: { unfiltered: byId.size, found: null } };
+  S.data[kind] = data;
+  // Some panels cap or truncate the unfiltered list (apps like IPTV Smarters ask per category).
+  // Fetch each category in the background and merge anything that was missing.
+  if (kind !== 'live' && data.cats.length && data.cats.length <= 400) deepLoad(kind, data, byId, add);
+  return data;
+}
+async function deepLoad(kind, data, byId, add) {
+  const k = KINDS[kind], pid = S.profile.id;
+  const queue = data.cats.map((c) => String(c.category_id)), total = queue.length;
+  let done = 0;
+  const status = (t) => { if (S.tab === kind) { const el = $('#cat-status'); if (el) el.textContent = t; } };
+  const worker = async () => {
+    while (queue.length && S.profile?.id === pid && S.data[kind] === data) {
+      const cid = queue.shift();
+      try { asArray(await api(k.items, { category_id: cid })).forEach((raw) => add(raw, cid)); } catch { /* skip failing category */ }
+      status(`Checking categories ${++done}/${total}…`);
+    }
+  };
+  await Promise.all(Array.from({ length: 5 }, worker));
+  if (S.profile?.id !== pid || S.data[kind] !== data) return;
+  const grew = byId.size > data.stats.unfiltered;
+  data.items = [...byId.values()];
+  data.stats.found = byId.size;
+  status('');
+  if (S.tab === kind) { renderCats(); if (grew) renderList(); }
 }
 function setTab(tab) {
   S.tab = tab; S.cat = 'all';
@@ -184,10 +222,13 @@ function renderCats() {
   side.replaceChildren();
   if (S.tab === 'favs') return;
   const items = S.data[S.tab].items, counts = {};
-  for (const i of items) counts[i.category_id] = (counts[i.category_id] || 0) + 1;
+  for (const i of items) for (const c of i.cats) counts[c] = (counts[c] || 0) + 1;
   const mk = (id, name, n) => h('button', { class: 'cat' + (S.cat === id ? ' active' : ''), onclick: () => { S.cat = id; renderCats(); renderList(); } }, h('span', {}, name), h('span', { class: 'muted' }, n));
   side.append(mk('all', 'All', items.length));
   for (const c of S.data[S.tab].cats) if (counts[c.category_id]) side.append(mk(String(c.category_id), c.category_name, counts[c.category_id]));
+  const st = S.data[S.tab].stats;
+  side.append(h('div', { id: 'cat-status', class: 'muted stats' }));
+  side.append(h('div', { class: 'muted stats' }, `${items.length} titles` + (st && st.found != null ? ` (server's full list: ${st.unfiltered}, after checking every category: ${st.found})` : '')));
 }
 
 let renderToken = 0, io;
@@ -195,7 +236,7 @@ function renderList() {
   const content = $('#content');
   const token = ++renderToken;
   let items = tabItems();
-  if (S.tab !== 'favs' && S.cat !== 'all') items = items.filter((i) => String(i.category_id) === S.cat);
+  if (S.tab !== 'favs' && S.cat !== 'all') items = items.filter((i) => i.cats.has(S.cat));
   if (S.query) items = items.filter((i) => i._l.includes(S.query));
   S.list = items;
   if (!items.length) { content.replaceChildren(h('div', { class: 'empty' }, S.tab === 'favs' ? 'No favorites yet. Tap the ☆ on anything.' : 'Nothing found.')); return; }

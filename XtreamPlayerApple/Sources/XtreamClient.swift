@@ -59,6 +59,22 @@ struct XtreamClient {
         do { return try JSONDecoder().decode(T.self, from: data) } catch { throw ClientError.badData }
     }
 
+    /// Some panels send lists as {"0": {...}, "1": {...}} instead of [...]. Accept both; never throw on odd shapes.
+    func callList<T: Decodable>(_ action: String, _ params: [String: String] = [:], as type: T.Type = T.self) async throws -> [T] {
+        guard var c = URLComponents(url: base.appendingPathComponent("player_api.php"), resolvingAgainstBaseURL: false) else { throw ClientError.badHost }
+        var q = [URLQueryItem(name: "username", value: username), URLQueryItem(name: "password", value: password), URLQueryItem(name: "action", value: action)]
+        for (k, v) in params { q.append(URLQueryItem(name: k, value: v)) }
+        c.queryItems = q
+        c.percentEncodedQuery = c.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        guard let url = c.url else { throw ClientError.badHost }
+        let (data, resp) = try await Self.session.data(from: url)
+        if let h = resp as? HTTPURLResponse, !(200..<300).contains(h.statusCode) { throw ClientError.http(h.statusCode) }
+        let dec = JSONDecoder()
+        if let arr = try? dec.decode([T].self, from: data) { return arr }
+        if let map = try? dec.decode([String: T].self, from: data) { return Array(map.values) }
+        return []
+    }
+
     /// section: "live" | "movie" | "series"
     func streamURL(_ section: String, id: String, ext: String) -> URL {
         base.appendingPathComponent(section)

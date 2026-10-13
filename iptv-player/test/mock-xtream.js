@@ -21,7 +21,8 @@ const routes = {
   get_live_categories: () => [1, 2, 3].map((i) => ({ category_id: String(i), category_name: `Live Group ${i}` })),
   get_live_streams: () => live,
   get_vod_categories: () => [{ category_id: '10', category_name: 'Action' }, { category_id: '11', category_name: 'Drama' }],
-  get_vod_streams: () => movies,
+  // Like some real panels: the unfiltered list is capped (set MOCK_CAP), per-category requests return everything.
+  get_vod_streams: (q) => (q.get('category_id') ? movies.filter((m) => m.category_id === q.get('category_id')) : movies.slice(0, Number(process.env.MOCK_CAP) || movies.length)),
   get_vod_info: () => ({ info: { plot: 'A mock movie for testing.', genre: 'Test', duration: '00:00:05', releasedate: '2024-01-01' } }),
   get_series_categories: () => [{ category_id: '20', category_name: 'Shows' }],
   get_series: () => series,
@@ -51,7 +52,7 @@ http.createServer((req, res) => {
     }
     const fn = routes[u.searchParams.get('action') || ''];
     res.writeHead(fn ? 200 : 404, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify(fn ? fn() : {}));
+    return res.end(JSON.stringify(fn ? fn(u.searchParams) : {}));
   }
   const parts = u.pathname.split('/').filter(Boolean);
   if (parts[0] === 'live' && parts[3]?.endsWith('.m3u8')) {

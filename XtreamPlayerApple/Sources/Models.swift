@@ -25,6 +25,7 @@ struct Item: Identifiable, Hashable {
     let ext: String
     let rating: Double
     let lower: String
+    var categoryIds: Set<String> = []   // every category the panel lists it under
     var key: String { "\(kind.rawValue):\(id)" }
 }
 

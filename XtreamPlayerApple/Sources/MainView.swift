@@ -155,7 +155,7 @@ struct BrowseView: View {
     private var title: String { kind == .live ? "Live TV" : kind == .movie ? "Movies" : "Series" }
     private var filtered: [Item] {
         var items = app.catalog[kind]?.items ?? []
-        if category != "all" { items = items.filter { $0.categoryId == category } }
+        if category != "all" { items = items.filter { $0.categoryId == category || $0.categoryIds.contains(category) } }
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         if !q.isEmpty { items = items.filter { $0.lower.contains(q) } }
         return items
@@ -183,6 +183,9 @@ struct BrowseView: View {
                 }
             }
             .navigationTitle(title)
+            .safeAreaInset(edge: .bottom) {
+                if let t = app.loadStats[kind] { Text(t).font(.caption2).foregroundStyle(.secondary).padding(.bottom, 2) }
+            }
             .searchable(text: $query, prompt: "Search \(title)")
             .toolbar {
                 ToolbarItem {

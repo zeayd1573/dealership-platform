@@ -95,6 +95,20 @@ final class AppModel: ObservableObject {
 
     // MARK: catalog
 
+    @Published var loadStats: [Kind: String] = [:]
+
+    private func makeItem(_ s: APIStream, kind: Kind, category: String? = nil) -> Item? {
+        guard let id = (kind == .series ? s.series_id : s.stream_id)?.value, !id.isEmpty else { return nil }
+        let name = s.name ?? ""
+        let icon = (kind == .series ? s.cover : s.stream_icon).flatMap { $0.isEmpty ? nil : URL(string: $0) }
+        var cats = Set<String>()
+        let primary = s.category_id?.value ?? category ?? ""
+        cats.insert(primary)
+        if let category { cats.insert(category) }
+        return Item(kind: kind, id: id, name: name, poster: icon, categoryId: primary, ext: s.container_extension ?? "mp4",
+                    rating: Double(s.rating?.value ?? "") ?? 0, lower: name.lowercased(), categoryIds: cats)
+    }
+
     func load(_ kind: Kind, force: Bool = false) async {
         if catalog[kind] != nil && !force { return }
         guard let c = client else { return }
@@ -106,23 +120,40 @@ final class AppModel: ObservableObject {
             }
         }()
         do {
-            async let cats: [APICategory]? = try? c.call(catAction)
-            async let streams: [APIStream] = c.call(itemAction)
+            async let cats: [APICategory]? = try? c.callList(catAction)
+            async let streams: [APIStream] = c.callList(itemAction)
             let cs = (await cats) ?? []
             let ss = try await streams
             let categories = cs.compactMap { x -> Category? in
                 guard let id = x.category_id?.value else { return nil }
                 return Category(id: id, name: x.category_name ?? "Category \(id)")
             }
-            let items = ss.compactMap { s -> Item? in
-                guard let id = (kind == .series ? s.series_id : s.stream_id)?.value, !id.isEmpty else { return nil }
-                let name = s.name ?? ""
-                let icon = (kind == .series ? s.cover : s.stream_icon).flatMap { $0.isEmpty ? nil : URL(string: $0) }
-                return Item(kind: kind, id: id, name: name, poster: icon, categoryId: s.category_id?.value ?? "",
-                            ext: s.container_extension ?? "mp4", rating: Double(s.rating?.value ?? "") ?? 0, lower: name.lowercased())
-            }
-            catalog[kind] = Catalog(categories: categories, items: items)
+            var byId: [String: Item] = [:]
+            var order: [String] = []
+            for s in ss { if let it = makeItem(s, kind: kind), byId[it.id] == nil { byId[it.id] = it; order.append(it.id) } }
+            let unfiltered = order.count
+            catalog[kind] = Catalog(categories: categories, items: order.compactMap { byId[$0] })
+            loadStats[kind] = "\(unfiltered) titles"
             loadError[kind] = nil
+
+            // Some panels cap/truncate the unfiltered list; apps like IPTV Smarters ask per category. Merge anything missing.
+            guard kind != .live, !categories.isEmpty, categories.count <= 400 else { return }
+            var pending = categories.map(\.id)
+            await withTaskGroup(of: (String, [APIStream]).self) { group in
+                func next() { if !pending.isEmpty { let cid = pending.removeFirst(); group.addTask { (cid, (try? await c.callList(itemAction, ["category_id": cid], as: APIStream.self)) ?? []) } } }
+                for _ in 0..<5 { next() }
+                while let (cid, list) = await group.next() {
+                    for s in list {
+                        guard let it = makeItem(s, kind: kind, category: cid) else { continue }
+                        if var existing = byId[it.id] { existing.categoryIds.insert(cid); byId[it.id] = existing }
+                        else { byId[it.id] = it; order.append(it.id) }
+                    }
+                    next()
+                }
+            }
+            guard client?.base == c.base else { return }   // user switched playlists meanwhile
+            catalog[kind] = Catalog(categories: categories, items: order.compactMap { byId[$0] })
+            loadStats[kind] = "\(order.count) titles (server's full list had \(unfiltered))"
         } catch {
             loadError[kind] = error.localizedDescription
         }
